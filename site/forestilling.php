@@ -81,10 +81,9 @@ sc_page_start([
         <?php endif; ?>
       </dl>
       <?= sc_countdown($ev) ?>
-      <div class="show-buttons">
-        <?php if ($ev['billetLink'] !== ''): ?><a class="btn" href="<?= e($ev['billetLink']) ?>" target="_blank" rel="noopener">Køb billet</a><?php endif; ?>
-        <?php if ($ev['eksterntLink'] !== ''): ?><a class="btn btn-ghost" href="<?= e($ev['eksterntLink']) ?>" target="_blank" rel="noopener">Mere info ↗</a><?php endif; ?>
-      </div>
+      <?php if ($ev['billetLink'] !== ''): ?>
+      <div class="show-buttons"><a class="btn" href="<?= e($ev['billetLink']) ?>" target="_blank" rel="noopener">Køb billet</a></div>
+      <?php endif; ?>
     </aside>
 
     <div class="show-text">

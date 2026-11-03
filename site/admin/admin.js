@@ -838,7 +838,7 @@
       const ev = {
         id: uniqueId(slugify(titel) || "forestilling", evs.map((e) => e.id)),
         titel, type: "", datoer: "", start: "", sted: "", adresse: "", spoergsmaal: "", tekst: "", beskrivelse: "",
-        billede: "", galleri: [], hold: [], video: "", billetLink: "", eksterntLink: "", fremhaevet: false, skjult: false,
+        billede: "", galleri: [], hold: [], video: "", billetLink: "", fremhaevet: false, skjult: false,
       };
       evs.unshift(ev);
       S.nye.add(ev.id);
@@ -932,10 +932,9 @@
           addLabel: "Tilføj person",
           make: () => ({ rolle: "", navn: "" }),
         })),
-      card("Billetter og links", null,
+      card("Billetter og video", null,
         textInput(ev, "billetLink", { label: "Link til billetsalg", type: "url", placeholder: "https://…", help: "Når der står et link her, vises knappen “Køb billet”." }),
-        textInput(ev, "video", { label: "Video fra YouTube eller Vimeo", type: "url", placeholder: "https://www.youtube.com/watch?v=…", help: "Fx en trailer. Kopiér linket fra YouTube og sæt det ind her." }),
-        textInput(ev, "eksterntLink", { label: "Link til mere info (valgfri)", type: "url", placeholder: "https://…", help: "Fx en side om forestillingen et andet sted. Vises som knappen “Mere info”." })),
+        textInput(ev, "video", { label: "Video fra YouTube eller Vimeo", type: "url", placeholder: "https://www.youtube.com/watch?v=…", help: "Fx en trailer. Kopiér linket fra YouTube og sæt det ind her." })),
       card("Visning", null,
         toggle(ev, "fremhaevet", {
           label: "Vis som aktuel forestilling på forsiden",
