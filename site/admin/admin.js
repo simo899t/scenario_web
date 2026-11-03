@@ -924,9 +924,9 @@
         textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side. Gerne 1–3 sætninger." }),
         textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit. Skriv **sådan her** for fed tekst." })),
       card("Billeder", null,
-        imageField(ev, "billede", { label: "Hovedbillede eller banner", help: "Vises på forsiden, i oversigten og øverst på forestillingens side. Både brede bannere og plakater virker." }),
+        imageField(ev, "billede", { label: "Hovedbillede", help: "Vises på forsiden, i oversigten og øverst på forestillingens side." }),
         galleryField(ev.galleri, { label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
-      card("Medvirkende og hold", "Fx “Instruktør – Anna Hansen” eller “Veronica – Sofie Jensen”. Vises på forestillingens side.",
+      card("Medvirkende og hold", null,
         rowsField(ev.hold, {
           cols: [{ key: "rolle", label: "Rolle eller funktion", placeholder: "fx Instruktør" }, { key: "navn", label: "Navn", placeholder: "fx Anna Hansen" }],
           addLabel: "Tilføj person",
