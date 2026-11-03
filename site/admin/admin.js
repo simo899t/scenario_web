@@ -539,7 +539,7 @@
     });
     ta.value = obj[key] || "";
     requestAnimationFrame(() => { if (ta.isConnected) autosize(ta); });
-    const help = o.help === undefined ? "Lav en tom linje for at starte et nyt afsnit. Skriv **sådan her** for fed tekst." : o.help;
+    const help = o.help === undefined ? "Lav en tom linje for at starte et nyt afsnit." : o.help;
     return field({ label: o.label, help, id, cls: o.cls }, ta);
   }
 
@@ -920,9 +920,9 @@
           textInput(ev, "sted", { label: "Sted", placeholder: "fx Den Fynske Opera" }),
           textInput(ev, "adresse", { label: "Adresse", placeholder: "fx Jernbanegade 22, 5000 Odense C", help: "Bliver til et link til Google Maps." }))),
       card("Tekst", null,
-        textInput(ev, "spoergsmaal", { label: "Fængende spørgsmål eller citat", placeholder: "fx Hvis verden sluttede om fire timer – hvem ville du så være?", help: "Vises med stor skrift. Kan stå tomt." }),
-        textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side. Gerne 1–3 sætninger." }),
-        textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit. Skriv **sådan her** for fed tekst." })),
+        textInput(ev, "spoergsmaal", { label: "Overskrift til tekst (kan være tomt)", placeholder: "fx Hvis verden sluttede om fire timer – hvem ville du så være?", help: "Vises med stor skrift." }),
+        textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side." }),
+        textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit." })),
       card("Billeder", null,
         imageField(ev, "billede", { label: "Hovedbillede", help: "Vises på forsiden, i oversigten og øverst på forestillingens side." }),
         galleryField(ev.galleri, { label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
