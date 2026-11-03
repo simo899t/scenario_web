@@ -112,7 +112,7 @@ function sc_media(string $src, string $alt, string $class = 'media'): string
 /** Liste-række til en forestilling (forside og "andre forestillinger"). */
 function sc_event_row(array $ev): string
 {
-    $html = '<a class="event-row" href="' . e(sc_event_url($ev)) . '"' . ($ev['billede'] !== '' ? ' data-img="' . e($ev['billede']) . '"' : '') . '>';
+    $html = '<a class="event-row" href="' . e(sc_event_url($ev)) . '">';
     $html .= '<span class="event-year">' . e(sc_event_when($ev)) . '</span>';
     $html .= '<span class="event-main"><span class="event-title">' . e($ev['titel']) . '</span>';
     $html .= '<span class="event-type">' . e($ev['type']) . ($ev['sted'] !== '' ? ' · ' . e($ev['sted']) : '') . '</span></span>';
