@@ -1,0 +1,9 @@
+# Indhold og billeder, som redaktørerne laver på serveren – må ikke overskrives ved upload
+data/*.php
+data/.lock
+data/*.tmp
+data/backups/*
+!data/backups/.gitkeep
+uploads/*
+!uploads/.htaccess
+!uploads/index.html

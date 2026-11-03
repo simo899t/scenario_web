@@ -1,0 +1,20 @@
+# Teater Scenario
+DirectoryIndex index.php index.html
+
+# Gamle adresser fra den statiske version
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^om\.html$ om.php [R=301,L]
+  RewriteRule ^forestillinger\.html$ forestillinger.php [R=301,L]
+  RewriteRule ^index\.html$ index.php [R=301,L]
+</IfModule>
+
+# Lad browseren huske billeder, CSS og JS (filerne får ?v=... når de ændres)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule>

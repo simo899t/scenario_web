@@ -1,0 +1,182 @@
+{
+  "generelt": {
+    "sidenavn": "Teater Scenario",
+    "beskrivelse": "Teater Scenario – teater, musicals og teaterkoncerter for unge i Odense."
+  },
+  "forside": {
+    "undertitel": "Teater for unge",
+    "baggrund": "billeder/praesentation.png",
+    "aktuelOverskrift": "Næste forestilling"
+  },
+  "om": {
+    "overskrift": "Om scenario",
+    "kort": "Scenario er en ny teaterforening i Odense – skabt af unge, for unge – med kærlighed til scenekunst, musical og alt det fede, der opstår, når mennesker mødes om noget kreativt.",
+    "knap": "Læs mere om Scenario",
+    "afsnit": [
+      {
+        "overskrift": "Visioner og mål",
+        "undertitel": "Scenario – for dig, der vil mere med scenekunst.",
+        "tekst": "Scenario er en ny teaterforening i Odense – skabt af unge, for unge – med kærlighed til scenekunst, musical og alt det fede, der opstår, når mennesker mødes om noget kreativt.\n\nHos os handler det ikke kun om at stå på en scene – det handler om at udvikle sig. Vi tager kunsten seriøst og giver dig muligheden for at arbejde målrettet med dit talent. Du får plads til at udforske, vokse og blive dygtigere – uanset om du drømmer om scenen eller livet bag tæppet.\n\nVi laver også mindre projekter og arbejder løbende med idéudvikling, så der er masser af muligheder for at prøve kræfter med teater i alle former og farver.\n\nScenario er et sted, hvor du kan finde din stemme, finpudse dit udtryk og tage dine første – eller næste – seriøse skridt mod en fremtid med scenekunst."
+      },
+      {
+        "overskrift": "Om foreningen",
+        "undertitel": "",
+        "tekst": "Selvom Scenario er en nystiftet forening, er den på ingen måde uden erfaring.\n\nTværtimod hviler den på et solidt fundament af stærke kræfter med mange års virke i det danske forenings- og kulturliv. Foreningen er båret frem af nøglepersoner, der tidligere har været drivende i succesfulde lignende tiltag, heriblandt; Elite Teater, Nyborg Voldspil, Frøbjerg Festspil og mange andre foreninger og projekter, der har sat tydelige aftryk på det lokale kulturliv med deres høje kunstneriske niveau og evne til at engagere unge.\n\nDenne erfaring bringes nu videre i Scenario, hvor det kreative, inkluderende og udviklende arbejde fortsætter i nye rammer. Foreningen har dermed, på trods af sin unge alder, et erfarent og passioneret bagland, der både forstår de praktiske, organisatoriske og kunstneriske aspekter af foreningsdrevet scenekunst.\n\nDet er netop denne kombination af ny energi og gammel erfaring, der gør Scenario til en lovende og bæredygtig aktør i kulturlivet – med ambitioner om at skabe varige og meningsfulde tilbud for både deltagere og publikum."
+      }
+    ]
+  },
+  "forestillingerTekst": {
+    "overskrift": "Forestillinger",
+    "intro": ""
+  },
+  "events": [
+    {
+      "id": "final-call",
+      "titel": "Final Call",
+      "type": "Teaterkoncert (vinter 2026)",
+      "datoer": "17. – 19. december 2026",
+      "start": "2026-12-17T19:30",
+      "sted": "Den Fynske Opera",
+      "adresse": "",
+      "spoergsmaal": "Hvis verden sluttede om fire timer – hvem ville du så være?",
+      "tekst": "Til december sætter vi en teaterkoncert: \"Final Call\"! Det er ikke en fortælling om en katastrofe. Det er en fortælling om, hvad der sker, når mennesker ikke længere har noget at miste.",
+      "beskrivelse": "",
+      "billede": "billeder/final-call-banner.webp",
+      "galleri": [],
+      "hold": [],
+      "video": "",
+      "billetLink": "",
+      "eksterntLink": "https://www.teaterscenario.dk/teaterkoncert2026/",
+      "fremhaevet": true,
+      "skjult": false
+    },
+    {
+      "id": "natten-til-torsdag",
+      "titel": "Natten til Torsdag",
+      "type": "Scenekunstnerisk projekt for unge",
+      "datoer": "2026",
+      "start": "",
+      "sted": "",
+      "adresse": "",
+      "spoergsmaal": "",
+      "tekst": "Et scenekunstnerisk projekt skabt af og med unge.",
+      "beskrivelse": "",
+      "billede": "billeder/praesentation.png",
+      "galleri": [],
+      "hold": [],
+      "video": "",
+      "billetLink": "",
+      "eksterntLink": "https://www.teaterscenario.dk/natten-til-torsdag/",
+      "fremhaevet": false,
+      "skjult": false
+    },
+    {
+      "id": "heathers-the-musical",
+      "titel": "Heathers The Musical",
+      "type": "Musical",
+      "datoer": "2025",
+      "start": "",
+      "sted": "",
+      "adresse": "",
+      "spoergsmaal": "",
+      "tekst": "Den mørke, sjove kultmusical om magt og popularitet i high school.",
+      "beskrivelse": "",
+      "billede": "billeder/praesentation.png",
+      "galleri": [],
+      "hold": [],
+      "video": "",
+      "billetLink": "",
+      "eksterntLink": "https://www.teaterscenario.dk/heathers-the-musical/",
+      "fremhaevet": false,
+      "skjult": false
+    }
+  ],
+  "medvirk": {
+    "overskrift": "Vil du være med?",
+    "tekst": "Vi leder altid efter nye folk – på scenen, i bandet, til lys og lyd, kostumer, scenografi og meget mere.",
+    "roller": [
+      "Skuespil",
+      "Sang",
+      "Band",
+      "Lys & lyd",
+      "Kostumer",
+      "Scenografi"
+    ],
+    "knap": "Skriv til os",
+    "link": ""
+  },
+  "sponsorTekst": {
+    "overskrift": "Sponsorer & netværk",
+    "tekst": ""
+  },
+  "sponsorer": [
+    {
+      "id": "odense-kommune",
+      "navn": "Odense Kommune",
+      "logo": "billeder/sponsorer/odense_komune.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "odense-teater",
+      "navn": "Odense Teater",
+      "logo": "billeder/sponsorer/odense_teator.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "odense-sommer-revy",
+      "navn": "Odense Sommer Revy",
+      "logo": "billeder/sponsorer/odense_sommer_revy.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "viby-efterskole",
+      "navn": "Viby Efterskole",
+      "logo": "billeder/sponsorer/viby_efterskole.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "holy-cow-media",
+      "navn": "Holy Cow Media",
+      "logo": "billeder/sponsorer/holy-cow-media.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "mic-productions",
+      "navn": "MIC Productions",
+      "logo": "billeder/sponsorer/mic-productions.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "7-eleven",
+      "navn": "7-Eleven",
+      "logo": "billeder/sponsorer/seven_eleven.webp",
+      "link": "",
+      "niveau": "sponsor"
+    },
+    {
+      "id": "akcentralen",
+      "navn": "AKCentralen",
+      "logo": "billeder/sponsorer/akcentralen.webp",
+      "link": "",
+      "niveau": "sponsor"
+    }
+  ],
+  "kontakt": {
+    "overskrift": "Kontakt",
+    "tekst": "",
+    "email": "kontakt@teaterscenario.dk",
+    "telefon": "",
+    "adresse": "",
+    "cvr": "45117626",
+    "instagram": "",
+    "facebook": "",
+    "tiktok": "",
+    "youtube": ""
+  }
+}
