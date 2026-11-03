@@ -262,8 +262,6 @@ a.sponsor:hover .sponsor-name { color: var(--cream); }
 .footer-some a { display: inline-block; padding: .5rem 1rem; border: 1px solid var(--line); text-decoration: none; font-size: .9rem; font-weight: 500; transition: border-color .2s, background .2s; }
 .footer-some a:hover { border-color: var(--cream); background: rgba(244, 236, 224, .05); }
 .footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .85rem; margin-top: 3rem; }
-.footer-login { color: var(--muted); text-underline-offset: 3px; }
-.footer-login:hover { color: var(--cream); }
 
 /* Fade ind ved scroll (kun når JavaScript kører) */
 .js .reveal { opacity: 0; transform: translateY(40px); transition: opacity 1s ease, transform 1s var(--ease); }

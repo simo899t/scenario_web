@@ -92,7 +92,7 @@ function sc_page_end(): void
     <?php endif; ?>
     <div class="footer-row">
       <span><?= $k['cvr'] !== '' ? 'CVR ' . e($k['cvr']) : '' ?></span>
-      <span>© <?= date('Y') ?> <?= e($site) ?> · <a href="admin/" class="footer-login">Log ind</a></span>
+      <span>© <?= date('Y') ?> <?= e($site) ?></span>
     </div>
   </div>
 </footer>
