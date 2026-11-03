@@ -1,0 +1,98 @@
+<!-- Teater Scenario: custom design. Paste ALL of this into
+     Hjemmeside indstillinger > Sidehovede og sidefod > Hjemmeside sidehovede HTML-kode -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Change the colours here */
+  :root {
+    --sc-bg: #0e0d0c;
+    --sc-surface: #1a1816;
+    --sc-text: #f3eee8;
+    --sc-muted: #b5aca3;
+    --sc-accent: #c8373a;
+  }
+
+  body, .l-page { background: var(--sc-bg) !important; color: var(--sc-text); }
+  body, p, li, .menu-item-text, .b-btn-t {
+    font-family: "Inter", system-ui, sans-serif !important;
+  }
+  h1, h2, h3, .logo-text {
+    font-family: "Fraunces", Georgia, serif !important;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  p { color: var(--sc-muted); font-size: 1.1rem; line-height: 1.7; }
+
+  /* Header: sticky, blurred glass bar */
+  .l-h .h-w {
+    background: rgba(14, 13, 12, 0.7) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  #menu .menu-item-text {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  #menu .menu-item:hover .menu-item-text,
+  #menu .wnd-active > .menu-item .menu-item-text { color: var(--sc-accent) !important; }
+
+  /* Hero: full screen with a dark gradient over the image */
+  .s-hm { min-height: 92vh !important; }
+  .s-hm .s-bg-l::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(14,13,12,0) 40%, var(--sc-bg) 100%);
+  }
+
+  /* Content sections become cards */
+  .s-basic .s-c {
+    background: var(--sc-surface);
+    border-radius: 20px;
+    padding: clamp(24px, 5vw, 64px) !important;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  }
+  .b-text h2, .b-text h2 strong {
+    font-size: clamp(2rem, 5vw, 3.6rem) !important;
+    color: var(--sc-text) !important;
+  }
+  .b-img-c img { border-radius: 12px; }
+
+  /* Buttons: rounded pills in the accent colour */
+  .b-btn-l {
+    background: var(--sc-accent) !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    padding: 16px 36px !important;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .b-btn-l:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(200, 55, 58, 0.4); }
+  .b-btn-t { color: #fff !important; font-weight: 600; letter-spacing: 0.04em; }
+
+  /* Footer */
+  .s-f { background: #080807 !important; color: var(--sc-muted); }
+
+  /* Fade sections in as you scroll */
+  .sc-reveal { opacity: 0; transform: translateY(40px); transition: opacity .8s ease, transform .8s ease; }
+  .sc-reveal.sc-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .sc-reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Skip in the editor so editing stays normal
+    if (location.hostname.indexOf("cms.") !== -1) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("sc-in"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll(".l-m .s-basic, .l-m .b-img, .l-m .b-text").forEach(function (el) {
+      el.classList.add("sc-reveal");
+      io.observe(el);
+    });
+  });
+</script>
