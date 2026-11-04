@@ -1,136 +1,134 @@
-/* Scenario Lager – enkelt, klassisk udseende */
+/* Scenario Lager – enkelt og klassisk. Samme opbygning på alle sider. */
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { background: #fff; color: #222; font: 15px/1.45 Arial, Helvetica, sans-serif; }
 a { color: #0645ad; }
 [hidden] { display: none !important; }
-h1 { font-size: 22px; margin: 0 0 12px; }
-h2 { font-size: 18px; margin: 0 0 10px; }
-h3 { font-size: 15px; margin: 0 0 8px; }
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #ccc; font-size: 17px; }
+h3 { margin: 18px 0 6px; font-size: 15px; }
 p { margin: 0 0 8px; }
-ul { margin: 0 0 12px; padding-left: 20px; }
+.red-o { color: #c00; }
+.sl-small { font-size: 13px; color: #666; }
+.sl-nowrap { white-space: nowrap; }
+.sl-hide { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-.scenario-lager-frontend { min-height: 100vh; display: flex; flex-direction: column; }
-.sl-container { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 16px; }
-.sl-muted { color: #666; }
-.sl-small { font-size: 13px; }
+/* Én fast bredde til alt indhold */
+.sl-wrap { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 16px; }
 
 /* Top */
-.sl-navbar { background: #eee; border-bottom: 1px solid #bbb; }
-.sl-nav-container { max-width: 1100px; margin: 0 auto; padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; }
-.sl-nav-brand { font-size: 18px; font-weight: bold; }
-.red-o { color: #c00; }
-.sl-nav-menu { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.sl-nav-menu a.active { color: #222; font-weight: bold; text-decoration: none; }
-.sl-nav-menu form { display: inline; margin: 0; }
-.sl-link { padding: 0; border: 0; background: none; font: inherit; color: #0645ad; text-decoration: underline; cursor: pointer; }
-.sl-link.logout { color: #c00; }
+.sl-top { background: #eee; border-bottom: 1px solid #bbb; }
+.sl-top-inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
+.sl-brand { color: #222; font-size: 18px; font-weight: bold; text-decoration: none; }
+.sl-nav { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; }
+.sl-nav a.active { color: #222; font-weight: bold; text-decoration: none; }
+.sl-user { margin-left: auto; font-size: 13px; color: #555; }
+.sl-user form, .sl-buttons form, .sl-table td form { display: inline; margin: 0; }
+.sl-link { padding: 0; border: 0; background: none; color: #0645ad; font: inherit; text-decoration: underline; cursor: pointer; }
+.sl-danger { color: #b00; }
+
+.sl-main { padding-top: 16px; padding-bottom: 40px; }
 
 /* Beskeder */
-.sl-alerts { width: 100%; max-width: 1100px; margin: 12px auto 0; padding: 0 16px; }
-.sl-alert { padding: 8px 12px; margin-bottom: 10px; border: 1px solid; }
+.sl-alert { margin-bottom: 14px; padding: 8px 12px; border: 1px solid; }
 .sl-alert-success { background: #eaf6ea; border-color: #8bc48b; }
 .sl-alert-danger { background: #fdecec; border-color: #e09a9a; }
-.sl-alert-warning { background: #fff7e0; border-color: #e0b050; }
+.sl-creds { margin: 8px 0; padding: 8px; border: 1px solid #ccc; background: #fff; white-space: pre-wrap; font: 13px/1.4 Consolas, Menlo, monospace; }
 
-/* Sidehoved med knapper */
-.sl-page-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 12px; }
-.sl-page-header h1 { margin: 0 auto 0 0; }
-.sl-page-header > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.sl-page-header form, .sl-table td form, .sl-list form { display: inline; margin: 0; }
+/* Titel: overskrift til venstre, knap til højre */
+.sl-back { margin: 0 0 6px; font-size: 14px; }
+.sl-titlebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 4px; }
+.sl-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.sl-sub { margin-bottom: 12px; font-size: 14px; color: #555; }
+.sl-titlebar + :not(.sl-sub) { margin-top: 12px; }
 
 /* Knapper */
 .sl-btn { display: inline-block; padding: 4px 12px; border: 1px solid #999; border-radius: 3px; background: #f4f4f4; color: #222; font: inherit; font-size: 14px; line-height: 1.4; text-decoration: none; white-space: nowrap; cursor: pointer; }
 .sl-btn:hover { background: #e4e4e4; }
-.sl-btn-primary { font-weight: bold; }
-.sl-btn-danger { color: #b00; border-color: #c88; }
-.sl-btn-sm { padding: 2px 8px; font-size: 13px; }
-.sl-btn-full { width: 100%; }
 .sl-btn:disabled { opacity: .5; cursor: default; }
+.sl-btn-main { font-weight: bold; }
+.sl-btn-danger { color: #b00; border-color: #c88; }
+.sl-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 
 /* Felter */
 input[type="text"], input[type="password"], input[type="datetime-local"], input[type="file"], select, textarea {
   padding: 4px 6px; border: 1px solid #999; border-radius: 2px; background: #fff; color: #222; font: inherit; font-size: 14px;
 }
-input[readonly] { background: #f2f2f2; }
-textarea { width: 100%; max-width: 500px; }
-.sl-form-group { margin-bottom: 10px; }
-.sl-form-group label { display: block; margin-bottom: 2px; font-size: 14px; font-weight: bold; }
-.sl-form-group input, .sl-form-group select, .sl-form-group textarea { width: 100%; max-width: 400px; }
-.sl-form-group textarea { max-width: 500px; }
-.sl-form-row { display: flex; flex-wrap: wrap; gap: 0 16px; }
-.sl-form-row .sl-form-group { width: 240px; }
-.sl-form-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.sl-help { margin: 2px 0 0; font-size: 13px; color: #666; }
-.sl-add-grid { display: grid; grid-template-columns: 90px minmax(0, 200px) 90px minmax(0, 220px); gap: 6px 10px; align-items: center; margin-bottom: 8px; }
-.sl-add-grid label { font-weight: bold; font-size: 14px; }
-.sl-inline-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
-.sl-inline-form label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 14px; }
+textarea { width: 100%; max-width: 420px; }
 
-/* Søgning og filtre */
-.sl-search-box { margin-bottom: 12px; }
-.sl-search-box form { display: flex; flex-wrap: wrap; gap: 6px; }
-.sl-search-box input[type="text"] { flex: 1; min-width: 180px; max-width: 400px; }
-.sl-layout { display: flex; gap: 16px; align-items: flex-start; }
-.sl-layout-main { flex: 1; min-width: 0; }
-.sl-filter-sidebar { flex: none; width: 170px; padding: 8px 12px; border: 1px solid #ccc; background: #fafafa; }
-.sl-filter-title { margin: 0 0 4px; font-size: 15px; }
-.sl-filter-section h3 { margin: 10px 0 2px; font-size: 12px; color: #555; text-transform: uppercase; }
-.sl-checkbox-label { display: block; padding: 2px 0; cursor: pointer; font-size: 14px; }
-.sl-checkbox-label input { margin: 0 6px 0 0; vertical-align: -1px; }
+/* Filterbjælke lige over tabellen */
+.sl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; padding: 6px 8px; border: 1px solid #ccc; background: #f6f6f6; font-size: 14px; }
+.sl-toolbar input[type="text"] { flex: 1; min-width: 160px; max-width: 320px; }
+.sl-toolbar label { margin-left: 6px; }
+.sl-toolbar label:first-of-type { margin-left: 0; }
+.sl-short { width: 120px; }
+.sl-toolbar .sl-short { flex: none; }
 
 /* Tabeller */
 .sl-table-wrap { overflow-x: auto; }
 .sl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .sl-table th, .sl-table td { padding: 5px 8px; border: 1px solid #ccc; text-align: left; vertical-align: top; }
-.sl-table th { background: #eee; font-weight: bold; white-space: nowrap; }
+.sl-table th { background: #eee; white-space: nowrap; }
+.sl-table th a { color: #222; text-decoration: none; }
+.sl-table th a:hover { text-decoration: underline; }
 .sl-table tbody tr:nth-child(even) { background: #fafafa; }
-.sl-table tr.item-in-use { background: #fff7e0; }
-.sl-table tr.sl-selected { background: #e6efff; }
-.sl-table td .sl-btn + .sl-btn, .sl-table td form + form { margin-left: 4px; }
-.sl-col-check { width: 32px; }
-.sl-sort-link { color: #222; text-decoration: none; }
-.sl-sort-link:hover, .sl-sort-link.active { text-decoration: underline; }
-.sl-name-link { color: #222; text-decoration: none; }
-.sl-name-link:hover { color: #0645ad; text-decoration: underline; }
+.sl-table tr.sl-reserved { background: #fff7e0; }
+.sl-table tr.sl-picked { background: #e6efff; }
+#sl-inventar tbody tr[data-href] { cursor: pointer; }
+#sl-inventar tbody tr[data-href]:hover { background: #f0f4fa; }
+.sl-table-small { width: auto; min-width: 320px; }
+.sl-col-check { width: 30px; text-align: center !important; }
+.sl-col-act { width: 1%; white-space: nowrap; }
+.sl-empty { padding: 16px 8px !important; color: #666; text-align: center !important; }
 
 /* Status som farvet tekst */
-.sl-badge { font-weight: bold; font-size: 13px; }
-.sl-badge-success { color: #2a7a2a; }
-.sl-badge-warning { color: #b36b00; }
-.sl-badge-danger { color: #c00; }
+.sl-st { font-weight: bold; }
+.sl-st-ok { color: #2a7a2a; }
+.sl-st-warn { color: #b36b00; }
+.sl-st-bad { color: #c00; }
 
-/* Sektioner og bokse */
-.sl-section { margin-bottom: 20px; }
-.sl-card, .sl-info-card { margin-bottom: 16px; padding: 10px 12px; border: 1px solid #ccc; }
-.sl-sub + .sl-sub { margin-top: 14px; padding-top: 12px; border-top: 1px solid #ddd; }
-.sl-info-grid { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-bottom: 4px; }
-.sl-info-item strong { display: block; font-size: 12px; color: #666; text-transform: uppercase; }
-.sl-desc { margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; }
-.sl-active-checkout { margin-bottom: 16px; padding: 10px 12px; border: 1px solid #e0b050; background: #fff7e0; }
-.sl-checkout-details p { margin: 2px 0; }
-.sl-active-checkout form { margin-top: 8px; }
-.sl-list { margin-bottom: 4px; }
-.sl-list-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #eee; }
-.sl-creds { margin: 8px 0; padding: 8px; border: 1px solid #ccc; background: #fff; white-space: pre-wrap; font: 13px/1.4 Consolas, Menlo, monospace; }
-.sl-preview { overflow-x: auto; }
+/* Række under tabellen: "Med valgte" */
+.sl-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid #ccc; border-top: 0; background: #f6f6f6; font-size: 14px; }
+.sl-right { margin-left: auto; }
+
+/* Oplysninger (to kolonner) og formularer (etiket til venstre) */
+.sl-details, .sl-form { border-collapse: collapse; font-size: 14px; }
+.sl-details { min-width: 360px; }
+.sl-details th, .sl-details td { padding: 5px 10px; border: 1px solid #ccc; text-align: left; vertical-align: top; }
+.sl-details th { width: 140px; background: #eee; }
+.sl-details-warn td { background: #fff7e0; }
+.sl-form th, .sl-form td { padding: 5px 10px 5px 0; text-align: left; vertical-align: top; }
+.sl-form th { width: 160px; padding-top: 9px; font-weight: bold; }
+.sl-form input[type="text"], .sl-form input[type="password"], .sl-form select { width: 280px; max-width: 100%; }
+.sl-form input.sl-short { width: 120px; }
+
+/* Vindue med info om en enhed */
+.sl-popup { width: min(680px, calc(100vw - 24px)); max-height: calc(100vh - 40px); padding: 0; border: 1px solid #888; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+.sl-popup::backdrop { background: rgba(0, 0, 0, .35); }
+.sl-popup-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #bbb; background: #eee; }
+.sl-popup-head h2 { margin: 0; padding: 0; border: 0; font-size: 17px; }
+.sl-popup-close { padding: 0 6px; border: 1px solid #999; background: #f4f4f4; font-size: 18px; line-height: 1.2; cursor: pointer; }
+.sl-popup-content { padding: 12px; overflow: auto; }
+.sl-popup-content h3:first-child { margin-top: 0; }
+.sl-popup .sl-details { width: 100%; min-width: 0; }
 
 /* Login */
-.sl-login-container { padding: 60px 16px; }
-.sl-login-box { max-width: 320px; margin: 0 auto; padding: 16px 20px; border: 1px solid #bbb; background: #fafafa; }
-.sl-login-box h1 { text-align: center; font-size: 20px; }
-.sl-login-box .sl-form-group input { max-width: none; }
-.sl-login-box .sl-muted { font-size: 14px; }
-
-/* Bund */
-.sl-footer { width: 100%; max-width: 1100px; margin: 0 auto; padding: 12px 16px; border-top: 1px solid #eee; }
-.sl-footer p { margin: 0; font-size: 13px; color: #777; }
+.sl-login { width: 100%; max-width: 420px; margin: 60px auto; padding: 16px 20px; border: 1px solid #bbb; background: #fafafa; }
+.sl-login h1 { margin-bottom: 12px; text-align: center; font-size: 20px; }
+.sl-login .sl-form { width: 100%; }
+.sl-login .sl-form th { width: 110px; }
+.sl-login .sl-form input { width: 100%; }
 
 /* Mobil */
-@media (max-width: 700px) {
-  .sl-layout { flex-direction: column; align-items: stretch; }
-  .sl-filter-sidebar { width: auto; }
-  .sl-add-grid { grid-template-columns: 1fr; }
-  .sl-form-row .sl-form-group { width: 100%; }
+@media (max-width: 640px) {
+  .sl-user { margin-left: 0; width: 100%; }
+  .sl-details { min-width: 0; width: 100%; }
+  .sl-details th { width: 110px; }
+  .sl-form, .sl-form tbody, .sl-form tr, .sl-form th, .sl-form td { display: block; width: 100%; }
+  .sl-form th { padding: 6px 0 2px; }
+  .sl-form td { padding: 0 0 4px; }
+  .sl-form input[type="text"], .sl-form input[type="password"], .sl-form select, textarea { width: 100%; max-width: none; }
+  .sl-toolbar input[type="text"] { max-width: none; }
 }
+.sl-table-wrap + form { margin-top: 14px; }

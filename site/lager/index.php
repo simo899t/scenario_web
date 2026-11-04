@@ -163,7 +163,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 });
                 if (!$done) throw new ScApiError('Enhederne er allerede reserveret af en anden.');
                 lg_flash('ok', $done === 1 ? 'Enheden er reserveret.' : "$done enheder er reserveret.");
-                lg_go(count($ids) === 1 ? ['side' => 'info', 'id' => $ids[0]] : []);
+                lg_go();
             }
 
             case 'returner': {
@@ -372,7 +372,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 }
 
 /* =========================================================
-   Sider (GET) – samme opbygning som det oprindelige plugin
+   Sider (GET)
+   Fast opbygning på alle sider: titel (+ knap) → filterbjælke → tabel/formular.
 ========================================================= */
 
 $side = (string)($_GET['side'] ?? 'inventar');
@@ -382,6 +383,7 @@ if (!lg_users()) {
     exit;
 }
 if (!$me) {
+    if (!empty($_GET['popup'])) { http_response_code(401); exit; }
     lg_page_login(false);
     exit;
 }
@@ -389,8 +391,8 @@ if (!$me) {
 $d = lg_data();
 switch ($side) {
     case 'info': lg_page_info($d, (int)($_GET['id'] ?? 0)); break;
-    case 'ny': lg_page_add($d); break;
-    case 'rediger': lg_page_edit($d, (int)($_GET['id'] ?? 0)); break;
+    case 'ny': lg_page_item_form($d, null); break;
+    case 'rediger': lg_page_item_form($d, (int)($_GET['id'] ?? 0)); break;
     case 'reserver': lg_page_reserve($d, lg_ids($_GET['ids'] ?? '')); break;
     case 'historik': lg_page_history($d); break;
     case 'indstillinger':
@@ -412,15 +414,10 @@ function lg_dmy(string $v): string
     return $v === '' || $t === false ? '-' : date('d/m/Y H:i', $t);
 }
 
-/** Skjulte felter, så søgning, filtre og sortering bliver husket mellem formularerne. */
 function lg_hidden(array $q): string
 {
     $h = '';
-    foreach ($q as $k => $v) {
-        foreach ((array)$v as $x) {
-            $h .= '<input type="hidden" name="' . e(is_array($v) ? $k . '[]' : $k) . '" value="' . e($x) . '">';
-        }
-    }
+    foreach ($q as $k => $v) $h .= '<input type="hidden" name="' . e($k) . '" value="' . e($v) . '">';
     return $h;
 }
 
@@ -447,14 +444,10 @@ function lg_html_start(string $title): void
 
 function lg_alerts(): void
 {
-    $msgs = $_SESSION['lg_flash'] ?? [];
-    unset($_SESSION['lg_flash']);
-    if (!$msgs) return;
-    echo '<div class="sl-alerts">';
-    foreach ($msgs as [$type, $text]) {
+    foreach ($_SESSION['lg_flash'] ?? [] as [$type, $text]) {
         echo '<div class="sl-alert sl-alert-' . ($type === 'ok' ? 'success' : 'danger') . '">' . e($text) . '</div>';
     }
-    echo '</div>';
+    unset($_SESSION['lg_flash']);
 }
 
 function lg_start(string $title, string $active): void
@@ -464,45 +457,58 @@ function lg_start(string $title, string $active): void
     $nav = [['inventar', 'Inventar'], ['historik', 'Historik'], ['indstillinger', 'Indstillinger']];
     if ($me['rolle'] === 'admin') $nav[] = ['brugere', 'Brugere'];
     ?>
-<div class="scenario-lager-frontend">
-  <nav class="sl-navbar">
-    <div class="sl-nav-container">
-      <div class="sl-nav-brand">Scenari<span class="red-o">o</span> Lager</div>
-      <ul class="sl-nav-menu">
-        <?php foreach ($nav as [$id, $label]): ?>
-        <li><a href="<?= e(lg_url($id === 'inventar' ? [] : ['side' => $id])) ?>" class="<?= $active === $id ? 'active' : '' ?>"><?= e($label) ?></a></li>
-        <?php endforeach; ?>
-        <li><form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="logout"><button type="submit" class="sl-link logout">Log ud</button></form></li>
-      </ul>
+<div class="sl-top">
+  <div class="sl-wrap sl-top-inner">
+    <a class="sl-brand" href="./">Scenari<span class="red-o">o</span> Lager</a>
+    <ul class="sl-nav">
+      <?php foreach ($nav as [$id, $label]): ?>
+      <li><a href="<?= e(lg_url($id === 'inventar' ? [] : ['side' => $id])) ?>"<?= $active === $id ? ' class="active"' : '' ?>><?= e($label) ?></a></li>
+      <?php endforeach; ?>
+    </ul>
+    <div class="sl-user"><?= e($me['navn']) ?> ·
+      <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="logout"><button type="submit" class="sl-link">Log ud</button></form>
     </div>
-  </nav>
-  <?php lg_alerts(); ?>
-  <div class="sl-container">
+  </div>
+</div>
+<div class="sl-wrap sl-main">
 <?php
+    lg_alerts();
 }
 
 function lg_end(): void
 {
-    global $me;
-    ?>
-  </div>
-  <div class="sl-footer"><p>Scenario Lager · logget ind som <?= e($me['navn']) ?></p></div>
-</div>
-</body>
-</html>
-<?php
+    echo "</div>\n<dialog class=\"sl-popup\" id=\"sl-popup\" aria-label=\"Enhed\"></dialog>\n</body>\n</html>\n";
+}
+
+/** Titel med knapper til højre og en lille forklaring under. */
+function lg_title(string $title, string $actions = '', string $sub = ''): void
+{
+    echo '<div class="sl-titlebar"><h1>' . e($title) . '</h1>' . ($actions !== '' ? '<div class="sl-actions">' . $actions . '</div>' : '') . '</div>';
+    if ($sub !== '') echo '<p class="sl-sub">' . $sub . '</p>';
+}
+
+function lg_back(string $href, string $label): void
+{
+    echo '<p class="sl-back"><a href="' . e($href) . '">« ' . e($label) . '</a></p>';
 }
 
 function lg_badge(?array $res): string
 {
-    if (!$res) return '<span class="sl-badge sl-badge-success">Tilgængelig</span>';
-    return lg_overdue($res) ? '<span class="sl-badge sl-badge-danger">Overskredet</span>' : '<span class="sl-badge sl-badge-warning">Reserveret</span>';
+    if (!$res) return '<span class="sl-st sl-st-ok">Tilgængelig</span>';
+    return lg_overdue($res) ? '<span class="sl-st sl-st-bad">Overskredet</span>' : '<span class="sl-st sl-st-warn">Reserveret</span>';
+}
+
+function lg_res_status(array $r): string
+{
+    if ($r['status'] !== 'aktiv') return '<span class="sl-st sl-st-ok">Returneret</span>';
+    return lg_overdue($r) ? '<span class="sl-st sl-st-bad">Overskredet</span>' : '<span class="sl-st sl-st-warn">Aktiv</span>';
 }
 
 function lg_not_found(): void
 {
     lg_start('Ikke fundet', 'inventar');
-    echo '<div class="sl-alert sl-alert-danger">Enhed ikke fundet</div><p><a class="sl-btn" href="./">Tilbage til inventar</a></p>';
+    lg_back('./', 'Tilbage til inventar');
+    echo '<h1>Enheden findes ikke</h1><p>Den er måske blevet slettet.</p>';
     lg_end();
 }
 
@@ -514,27 +520,25 @@ function lg_page_login(bool $setup): void
 {
     lg_html_start($setup ? 'Opsætning' : 'Log ind');
     ?>
-<div class="scenario-lager-frontend">
-  <div class="sl-login-container">
-    <div class="sl-login-box">
-      <h1>Scenari<span class="red-o">o</span> Lager</h1>
-      <?php lg_alerts(); ?>
-      <?php if ($setup): ?><p class="sl-muted">Opret den første administrator. Bagefter kan du tilføje flere personer under “Brugere”.</p><?php endif; ?>
-      <form method="post">
-        <?= lg_csrf() ?>
-        <input type="hidden" name="handling" value="<?= $setup ? 'opsaetning' : 'login' ?>">
-        <?php if ($setup): ?>
-        <div class="sl-form-group"><label for="f-navn">Dit navn</label><input type="text" id="f-navn" name="navn" required autocomplete="name" value="<?= e(lg_old('navn')) ?>"></div>
-        <?php endif; ?>
-        <div class="sl-form-group"><label for="f-bn">Brugernavn</label><input type="text" id="f-bn" name="brugernavn" required autocomplete="username" autocapitalize="none" value="<?= e(lg_old('brugernavn')) ?>"></div>
-        <div class="sl-form-group"><label for="f-pw">Adgangskode</label><input type="password" id="f-pw" name="kodeord" required autocomplete="<?= $setup ? 'new-password' : 'current-password' ?>"></div>
-        <?php if ($setup): ?>
-        <div class="sl-form-group"><label for="f-pw2">Gentag adgangskode</label><input type="password" id="f-pw2" name="gentag" required autocomplete="new-password"></div>
-        <?php endif; ?>
-        <button type="submit" class="sl-btn sl-btn-primary sl-btn-full"><?= $setup ? 'Opret og log ind' : 'Log ind' ?></button>
-      </form>
-    </div>
-  </div>
+<div class="sl-login">
+  <h1>Scenari<span class="red-o">o</span> Lager</h1>
+  <?php lg_alerts(); ?>
+  <?php if ($setup): ?><p>Opret den første administrator. Bagefter kan du tilføje flere personer under “Brugere”.</p><?php endif; ?>
+  <form method="post">
+    <?= lg_csrf() ?>
+    <input type="hidden" name="handling" value="<?= $setup ? 'opsaetning' : 'login' ?>">
+    <table class="sl-form">
+      <?php if ($setup): ?>
+      <tr><th><label for="f-navn">Dit navn</label></th><td><input type="text" id="f-navn" name="navn" required autocomplete="name" value="<?= e(lg_old('navn')) ?>"></td></tr>
+      <?php endif; ?>
+      <tr><th><label for="f-bn">Brugernavn</label></th><td><input type="text" id="f-bn" name="brugernavn" required autocomplete="username" autocapitalize="none" value="<?= e(lg_old('brugernavn')) ?>"></td></tr>
+      <tr><th><label for="f-pw">Adgangskode</label></th><td><input type="password" id="f-pw" name="kodeord" required autocomplete="<?= $setup ? 'new-password' : 'current-password' ?>"></td></tr>
+      <?php if ($setup): ?>
+      <tr><th><label for="f-pw2">Gentag</label></th><td><input type="password" id="f-pw2" name="gentag" required autocomplete="new-password"></td></tr>
+      <?php endif; ?>
+      <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main"><?= $setup ? 'Opret og log ind' : 'Log ind' ?></button></td></tr>
+    </table>
+  </form>
 </div>
 </body>
 </html>
@@ -548,27 +552,26 @@ function lg_page_login(bool $setup): void
 function lg_page_inventory(array $d): void
 {
     $search = sc_line($_GET['search'] ?? '', 200);
-    $status = array_values(array_intersect((array)($_GET['status'] ?? []), ['available', 'reserved']));
-    $secs = array_values(array_intersect((array)($_GET['sections'] ?? []), $d['sektioner']));
+    $status = in_array($_GET['status'] ?? '', ['available', 'reserved', 'overdue'], true) ? $_GET['status'] : '';
+    $sek = in_array($_GET['sektion'] ?? '', $d['sektioner'], true) ? $_GET['sektion'] : '';
     $sort = in_array($_GET['sort'] ?? '', ['id', 'name', 'location'], true) ? $_GET['sort'] : 'id';
     $dir = strtolower((string)($_GET['dir'] ?? '')) === 'desc' ? 'desc' : 'asc';
     $active = lg_active($d);
 
-    // Søg (flere ord adskilt af komma), filtrér og sortér
+    $nRes = count($active);
+    $nOver = count(array_filter($active, 'lg_overdue'));
+
     $terms = array_filter(array_map('trim', explode(',', sc_lower($search))), 'strlen');
-    $items = array_filter($d['enheder'], function ($e) use ($terms, $status, $secs, $active) {
-        $reserved = isset($active[(int)$e['id']]);
-        if (count($status) === 1 && ($status[0] === 'available') === $reserved) return false;
-        if ($secs) {
-            $ok = false;
-            foreach ($secs as $s) if (stripos($e['sku'], $s . '-') === 0) $ok = true;
-            if (!$ok) return false;
-        }
+    $items = array_filter($d['enheder'], function ($e) use ($terms, $status, $sek, $active) {
+        $r = $active[(int)$e['id']] ?? null;
+        if ($status === 'available' && $r) return false;
+        if ($status === 'reserved' && !$r) return false;
+        if ($status === 'overdue' && !($r && lg_overdue($r))) return false;
+        if ($sek !== '' && stripos($e['sku'], $sek . '-') !== 0) return false;
         if ($terms) {
             $hay = sc_lower($e['navn'] . ' ' . $e['sku'] . ' ' . $e['placering']);
-            $ok = false;
-            foreach ($terms as $t) if (strpos($hay, $t) !== false) $ok = true;
-            if (!$ok) return false;
+            foreach ($terms as $t) if (strpos($hay, $t) !== false) return true;
+            return false;
         }
         return true;
     });
@@ -578,91 +581,71 @@ function lg_page_inventory(array $d): void
         return $dir === 'desc' ? -$c : $c;
     });
 
-    $state = array_filter(['search' => $search, 'status' => $status, 'sections' => $secs, 'sort' => $sort !== 'id' ? $sort : '', 'dir' => $dir !== 'asc' ? $dir : '']);
+    $state = array_filter(['search' => $search, 'status' => $status, 'sektion' => $sek, 'sort' => $sort !== 'id' ? $sort : '', 'dir' => $dir !== 'asc' ? $dir : '']);
     $th = function (string $label, string $f) use ($state, $sort, $dir) {
         $on = $sort === $f;
         $q = array_merge($state, ['sort' => $f, 'dir' => $on && $dir === 'asc' ? 'desc' : 'asc']);
-        return '<th><a href="' . e(lg_url($q)) . '" class="sl-sort-link' . ($on ? ' active' : '') . '">' . e($label) . ($on ? ($dir === 'asc' ? ' ▲' : ' ▼') : '') . '</a></th>';
+        return '<th><a href="' . e(lg_url($q)) . '">' . e($label) . ($on ? ($dir === 'asc' ? ' ▲' : ' ▼') : '') . '</a></th>';
     };
+    $filtered = $search !== '' || $status !== '' || $sek !== '';
 
     lg_start('Inventar', 'inventar');
+    $sub = count($d['enheder']) . ' enheder i alt · ' . $nRes . ' reserveret' . ($nOver ? ' · <span class="sl-st-bad">' . $nOver . ' overskredet</span>' : '');
+    lg_title('Inventar', '<a href="' . e(lg_url(['side' => 'ny'])) . '" class="sl-btn sl-btn-main">Tilføj enhed</a>', $sub);
     ?>
-<div class="sl-page-header">
-  <h1>Inventar</h1>
-  <div>
-    <button type="button" id="sl-select-all-btn" class="sl-btn" hidden>Vælg alle</button>
-    <button type="button" id="sl-reserve-btn" class="sl-btn sl-btn-warning" hidden>Reserver valgte</button>
-    <button type="button" id="sl-return-btn" class="sl-btn sl-btn-success" hidden>Returner valgte</button>
-    <a href="<?= e(lg_url(['side' => 'ny'])) ?>" class="sl-btn sl-btn-primary">Tilføj Enhed</a>
-  </div>
+<form method="get" class="sl-toolbar" data-autosubmit>
+  <?= lg_hidden(array_intersect_key($state, ['sort' => 1, 'dir' => 1])) ?>
+  <label for="t-search" class="sl-hide">Søg</label>
+  <input type="text" id="t-search" name="search" value="<?= e($search) ?>" placeholder="Søg efter navn, ID eller placering">
+  <label for="t-status">Status</label>
+  <select id="t-status" name="status">
+    <option value="">Alle</option>
+    <option value="available"<?= $status === 'available' ? ' selected' : '' ?>>Tilgængelig</option>
+    <option value="reserved"<?= $status === 'reserved' ? ' selected' : '' ?>>Reserveret</option>
+    <option value="overdue"<?= $status === 'overdue' ? ' selected' : '' ?>>Overskredet</option>
+  </select>
+  <label for="t-sek">Sektion</label>
+  <select id="t-sek" name="sektion">
+    <option value="">Alle</option>
+    <?php foreach ($d['sektioner'] as $s): ?><option value="<?= e($s) ?>"<?= $sek === $s ? ' selected' : '' ?>><?= e($s) ?></option><?php endforeach; ?>
+  </select>
+  <button type="submit" class="sl-btn">Søg</button>
+  <?php if ($filtered): ?><a href="./" class="sl-btn">Ryd</a><?php endif; ?>
+</form>
+
+<div class="sl-table-wrap">
+<table class="sl-table" id="sl-inventar">
+  <thead>
+    <tr>
+      <th class="sl-col-check"><input type="checkbox" id="sl-all" title="Vælg alle" aria-label="Vælg alle"></th>
+      <?= $th('ID', 'id') ?><?= $th('Navn', 'name') ?><?= $th('Placering', 'location') ?>
+      <th>Status</th>
+      <th class="sl-col-act"></th>
+    </tr>
+  </thead>
+  <tbody>
+  <?php if (!$items): ?>
+    <tr><td colspan="6" class="sl-empty"><?= $d['enheder'] ? 'Ingen enheder passer til søgningen.' : 'Lageret er tomt. Tryk “Tilføj enhed”, eller importér fra Excel under Indstillinger.' ?></td></tr>
+  <?php endif; ?>
+  <?php foreach ($items as $e): $r = $active[(int)$e['id']] ?? null; $info = lg_url(['side' => 'info', 'id' => $e['id']]); ?>
+    <tr<?= $r ? ' class="sl-reserved"' : '' ?> data-href="<?= e($info) ?>">
+      <td class="sl-col-check"><input type="checkbox" class="sl-pick" value="<?= (int)$e['id'] ?>" data-free="<?= $r ? '0' : '1' ?>" aria-label="Vælg <?= e($e['navn']) ?>"></td>
+      <td class="sl-nowrap"><?= e($e['sku']) ?></td>
+      <td><a href="<?= e($info) ?>" data-popup><?= e($e['navn']) ?></a></td>
+      <td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td>
+      <td><?= lg_badge($r) ?><?php if ($r): ?><br><span class="sl-small"><?= e($r['navn']) ?>, til <?= e(lg_dmy($r['til'])) ?></span><?php endif; ?></td>
+      <td class="sl-col-act"><a href="<?= e(lg_url(['side' => 'rediger', 'id' => $e['id']])) ?>">Rediger</a></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
 </div>
 
-<div class="sl-search-box">
-  <form method="get">
-    <?= lg_hidden(array_diff_key($state, ['search' => 1])) ?>
-    <input type="text" name="search" value="<?= e($search) ?>" placeholder="Søg efter navn, ID eller placering...">
-    <button type="submit" class="sl-btn sl-btn-primary">Søg</button>
-    <?php if ($search !== '' || $status || $secs): ?><a href="./" class="sl-btn">Ryd alle</a><?php endif; ?>
-  </form>
-</div>
-
-<div class="sl-layout">
-  <div class="sl-filter-sidebar">
-    <h2 class="sl-filter-title">Filtre</h2>
-    <form method="get" data-autosubmit>
-      <?= lg_hidden(array_intersect_key($state, ['search' => 1, 'sort' => 1, 'dir' => 1])) ?>
-      <div class="sl-filter-section">
-        <h3>Status</h3>
-        <label class="sl-checkbox-label"><input type="checkbox" name="status[]" value="available"<?= in_array('available', $status, true) ? ' checked' : '' ?>><span>Tilgængelig</span></label>
-        <label class="sl-checkbox-label"><input type="checkbox" name="status[]" value="reserved"<?= in_array('reserved', $status, true) ? ' checked' : '' ?>><span>Reserveret</span></label>
-      </div>
-      <?php if ($d['sektioner']): ?>
-      <div class="sl-filter-section">
-        <h3>Sektioner</h3>
-        <?php foreach ($d['sektioner'] as $s): ?>
-        <label class="sl-checkbox-label"><input type="checkbox" name="sections[]" value="<?= e($s) ?>"<?= in_array($s, $secs, true) ? ' checked' : '' ?>><span><?= e($s) ?></span></label>
-        <?php endforeach; ?>
-      </div>
-      <?php endif; ?>
-      <noscript><button type="submit" class="sl-btn sl-btn-sm">Filtrér</button></noscript>
-    </form>
-  </div>
-
-  <div class="sl-layout-main">
-    <div class="sl-section">
-      <div class="sl-table-wrap">
-      <table class="sl-table">
-        <thead>
-          <tr>
-            <th class="sl-col-check"></th>
-            <?= $th('ID', 'id') ?><?= $th('Navn', 'name') ?><?= $th('Placering', 'location') ?>
-            <th>Status</th>
-            <th>Handlinger</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php if (!$items): ?>
-          <tr><td colspan="6"><?= $d['enheder'] ? 'Ingen Enheder fundet.' : 'Lageret er tomt. Tryk “Tilføj Enhed”, eller importér fra Excel under Indstillinger.' ?></td></tr>
-        <?php endif; ?>
-        <?php foreach ($items as $e): $r = $active[(int)$e['id']] ?? null; ?>
-          <tr class="sl-table-row<?= $r ? ' item-in-use' : '' ?>">
-            <td><input type="checkbox" class="sl-item-checkbox" value="<?= (int)$e['id'] ?>" data-available="<?= $r ? '0' : '1' ?>" aria-label="Vælg <?= e($e['navn']) ?>"></td>
-            <td><?= e($e['sku']) ?></td>
-            <td><strong><a class="sl-name-link" href="<?= e(lg_url(['side' => 'info', 'id' => $e['id']])) ?>"><?= e($e['navn']) ?></a></strong></td>
-            <td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td>
-            <td><?= lg_badge($r) ?>
-              <?php if ($r): ?><div class="sl-small sl-muted"><?= e($r['navn']) ?><br>Til: <?= e(lg_dmy($r['til'])) ?></div><?php endif; ?></td>
-            <td>
-              <a href="<?= e(lg_url(['side' => 'info', 'id' => $e['id']])) ?>" class="sl-btn sl-btn-sm">Info</a>
-              <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $e['id']])) ?>" class="sl-btn sl-btn-primary sl-btn-sm">Rediger</a>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-      </div>
-    </div>
-  </div>
+<div class="sl-bulk">
+  <span>Med valgte (<span id="sl-count">0</span>):</span>
+  <button type="button" class="sl-btn" id="sl-reserve" disabled>Reserver</button>
+  <button type="button" class="sl-btn" id="sl-return" disabled>Returner</button>
+  <span class="sl-small sl-right"><?= $filtered ? 'Viser ' . count($items) . ' af ' . count($d['enheder']) . ' enheder' : count($items) . ' enheder' ?></span>
 </div>
 <form method="post" id="sl-return-form" hidden><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"></form>
 <?php
@@ -670,164 +653,130 @@ function lg_page_inventory(array $d): void
 }
 
 /* =========================================================
-   Enhed: info, tilføj, rediger
+   Enhed
 ========================================================= */
 
 function lg_page_info(array $d, int $id): void
 {
+    $popup = !empty($_GET['popup']);
     $i = lg_item_index($d, $id);
-    if ($i === null) { lg_not_found(); return; }
+    if ($i === null) {
+        if ($popup) { echo '<div class="sl-popup-head"><h2>Ikke fundet</h2><button type="button" class="sl-popup-close" data-close aria-label="Luk">×</button></div><div class="sl-popup-content"><p>Enheden findes ikke længere.</p></div>'; return; }
+        lg_not_found();
+        return;
+    }
     $e = $d['enheder'][$i];
     $cur = lg_active($d)[$id] ?? null;
     $hist = array_values(array_filter($d['reservationer'], function ($r) use ($id) { return (int)$r['enhed'] === $id; }));
     usort($hist, function ($a, $b) { return strcmp($b['oprettet'], $a['oprettet']); });
 
+    if ($popup) {
+        header('Cache-Control: no-store');
+        echo '<div class="sl-popup-head"><h2>' . e($e['navn']) . '</h2><button type="button" class="sl-popup-close" data-close aria-label="Luk">×</button></div><div class="sl-popup-content">';
+        lg_info_body($d, $e, $cur, $hist, true);
+        echo '</div>';
+        return;
+    }
     lg_start($e['navn'], 'inventar');
-    ?>
-<div class="sl-page-header">
-  <h1>Enhed information</h1>
-  <div>
-    <a href="./" class="sl-btn">Tilbage til inventar</a>
-    <?php if (!$cur): ?><a href="<?= e(lg_url(['side' => 'reserver', 'ids' => $id])) ?>" class="sl-btn sl-btn-warning">Reserver Enhed</a><?php endif; ?>
-    <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $id])) ?>" class="sl-btn sl-btn-primary">Rediger Enhed</a>
-    <form method="post" data-confirm="Er du sikker på at du vil slette denne Enhed? Dette vil også slette al historik."><?= lg_csrf() ?><input type="hidden" name="handling" value="slet"><input type="hidden" name="id" value="<?= $id ?>"><button type="submit" class="sl-btn sl-btn-danger">Slet Enhed</button></form>
-  </div>
-</div>
+    lg_back('./', 'Tilbage til inventar');
+    lg_title($e['navn']);
+    lg_info_body($d, $e, $cur, $hist, false);
+    lg_end();
+}
 
-<div class="sl-info-card">
-  <h2><?= e($e['navn']) ?></h2>
-  <div class="sl-info-grid">
-    <div class="sl-info-item"><strong>ID</strong><span><?= e($e['sku']) ?></span></div>
-    <div class="sl-info-item"><strong>Placering</strong><span><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></span></div>
-    <div class="sl-info-item"><strong>Status</strong><span><?= lg_badge($cur) ?></span></div>
-  </div>
-  <?php if ($e['beskrivelse'] !== ''): ?>
-  <div class="sl-info-item sl-desc">
-    <strong>Beskrivelse</strong><span><?= nl2br(e($e['beskrivelse'])) ?></span>
-  </div>
-  <?php endif; ?>
-</div>
+function lg_info_body(array $d, array $e, ?array $cur, array $hist, bool $popup): void
+{
+    $id = (int)$e['id'];
+    $sek = lg_section_of($e['sku'], $d['sektioner']);
+    $shown = $popup ? array_slice($hist, 0, 5) : $hist;
+    ?>
+<table class="sl-details">
+  <tr><th>ID</th><td><?= e($e['sku']) ?></td></tr>
+  <tr><th>Placering</th><td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td></tr>
+  <tr><th>Sektion</th><td><?= $sek !== '' ? e($sek) : '-' ?></td></tr>
+  <tr><th>Status</th><td><?= lg_badge($cur) ?></td></tr>
+  <?php if ($e['beskrivelse'] !== ''): ?><tr><th>Beskrivelse</th><td><?= nl2br(e($e['beskrivelse'])) ?></td></tr><?php endif; ?>
+</table>
 
 <?php if ($cur): ?>
-<div class="sl-active-checkout">
-  <h3>Nuværende reservation</h3>
-  <div class="sl-checkout-details">
-    <p><strong>Brugers navn:</strong> <?= e($cur['navn']) ?></p>
-    <p><strong>Fra:</strong> <?= e(lg_dmy($cur['fra'])) ?></p>
-    <p><strong>Til:</strong> <?= e(lg_dmy($cur['til'])) ?><?= lg_overdue($cur) ? ' <span class="sl-badge sl-badge-danger">Overskredet</span>' : '' ?></p>
-    <p><strong>Reserveret:</strong> <?= e(lg_dmy($cur['oprettet'])) ?></p>
-    <?php if ($cur['note'] !== ''): ?><p><strong>Beskrivelse:</strong> <?= nl2br(e($cur['note'])) ?></p><?php endif; ?>
-  </div>
-  <form method="post" data-confirm="Marker denne Enhed som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><input type="hidden" name="tilbage" value="info"><input type="hidden" name="ids[]" value="<?= $id ?>">
-    <button type="submit" class="sl-btn sl-btn-primary">Returner Enhed</button></form>
-</div>
+<h3>Nuværende reservation</h3>
+<table class="sl-details sl-details-warn">
+  <tr><th>Reserveret af</th><td><?= e($cur['navn']) ?></td></tr>
+  <tr><th>Fra</th><td><?= e(lg_dmy($cur['fra'])) ?></td></tr>
+  <tr><th>Til</th><td><?= e(lg_dmy($cur['til'])) ?><?= lg_overdue($cur) ? ' <span class="sl-st sl-st-bad">(overskredet)</span>' : '' ?></td></tr>
+  <?php if ($cur['note'] !== ''): ?><tr><th>Formål</th><td><?= nl2br(e($cur['note'])) ?></td></tr><?php endif; ?>
+  <tr><th>Reserveret den</th><td><?= e(lg_dmy($cur['oprettet'])) ?></td></tr>
+</table>
 <?php endif; ?>
 
-<?php if ($hist): ?>
-<div class="sl-section">
-  <h3>Historik</h3>
-  <div class="sl-table-wrap">
-  <table class="sl-table">
-    <thead><tr><th>Brugers navn</th><th>Fra</th><th>Til</th><th>Reserveret</th><th>Status</th></tr></thead>
-    <tbody>
-    <?php foreach ($hist as $r): ?>
-      <tr>
-        <td><?= e($r['navn']) ?></td>
-        <td><?= e(lg_dmy($r['fra'])) ?></td>
-        <td><?= e(lg_dmy($r['til'])) ?></td>
-        <td><?= e(lg_dmy($r['oprettet'])) ?></td>
-        <td><?= $r['status'] === 'aktiv' ? (lg_overdue($r) ? '<span class="sl-badge sl-badge-danger">Overskredet</span>' : '<span class="sl-badge sl-badge-warning">Aktiv</span>') : '<span class="sl-badge sl-badge-success">Returneret</span>' ?></td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-  </div>
+<div class="sl-buttons">
+  <?php if ($cur): ?>
+  <form method="post" data-confirm="Marker “<?= e($e['navn']) ?>” som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><?php if (!$popup): ?><input type="hidden" name="tilbage" value="info"><?php endif; ?><input type="hidden" name="ids[]" value="<?= $id ?>">
+    <button type="submit" class="sl-btn sl-btn-main">Returner</button></form>
+  <?php else: ?>
+  <a href="<?= e(lg_url(['side' => 'reserver', 'ids' => $id])) ?>" class="sl-btn sl-btn-main">Reserver</a>
+  <?php endif; ?>
+  <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $id])) ?>" class="sl-btn">Rediger</a>
+  <form method="post" data-confirm="Slet “<?= e($e['navn']) ?>”? Al historik for enheden bliver også slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="slet"><input type="hidden" name="id" value="<?= $id ?>"><button type="submit" class="sl-btn sl-btn-danger">Slet</button></form>
 </div>
+
+<h3>Historik</h3>
+<?php if (!$hist): ?>
+<p class="sl-small">Enheden har ikke været reserveret endnu.</p>
+<?php else: ?>
+<div class="sl-table-wrap">
+<table class="sl-table">
+  <thead><tr><th>Reserveret af</th><th>Fra</th><th>Til</th><th>Formål</th><th>Status</th></tr></thead>
+  <tbody>
+  <?php foreach ($shown as $r): ?>
+    <tr><td><?= e($r['navn']) ?></td><td class="sl-nowrap"><?= e(lg_dmy($r['fra'])) ?></td><td class="sl-nowrap"><?= e(lg_dmy($r['til'])) ?></td><td><?= e($r['note']) ?></td><td><?= lg_res_status($r) ?></td></tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
+</div>
+<?php if (count($hist) > count($shown)): ?><p class="sl-small"><a href="<?= e(lg_url(['side' => 'info', 'id' => $id])) ?>">Se hele historikken (<?= count($hist) ?>)</a></p><?php endif; ?>
 <?php endif; ?>
 <?php
-    lg_end();
 }
 
-function lg_page_add(array $d): void
+function lg_page_item_form(array $d, ?int $id): void
 {
-    lg_start('Tilføj Enhed', 'inventar');
+    $edit = $id !== null;
+    $e = null;
+    if ($edit) {
+        $i = lg_item_index($d, $id);
+        if ($i === null) { lg_not_found(); return; }
+        $e = $d['enheder'][$i];
+    }
+    $val = function (string $k) use ($e) { return lg_old($k, $e ? (string)$e[$k] : ''); };
+    $back = $edit ? lg_url(['side' => 'info', 'id' => $id]) : './';
+
+    lg_start($edit ? 'Rediger ' . $e['navn'] : 'Tilføj enhed', 'inventar');
+    lg_back($back, $edit ? 'Tilbage til ' . $e['navn'] : 'Tilbage til inventar');
+    lg_title($edit ? 'Rediger enhed' : 'Tilføj enhed');
     ?>
-<div class="sl-page-header">
-  <h1>Tilføj ny Enhed</h1>
-  <a href="./" class="sl-btn">Tilbage til inventar</a>
-</div>
-<div class="sl-section">
-  <form method="post" class="sl-form" id="add-item-form">
-    <?= lg_csrf() ?><input type="hidden" name="handling" value="ny-enhed">
-    <div class="sl-add-grid">
-      <label for="item-type-select">Sektion *</label>
-      <select name="sektion" id="item-type-select">
+<form method="post">
+  <?= lg_csrf() ?>
+  <input type="hidden" name="handling" value="<?= $edit ? 'rediger' : 'ny-enhed' ?>">
+  <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$id ?>"><?php endif; ?>
+  <table class="sl-form">
+    <?php if ($edit): ?>
+    <tr><th><label for="f-sku">ID *</label></th><td><input type="text" id="f-sku" name="sku" required maxlength="60" value="<?= e($val('sku')) ?>"></td></tr>
+    <?php else: ?>
+    <tr><th><label for="f-sek">Sektion</label></th><td>
+      <select id="f-sek" name="sektion">
         <option value="">Ingen</option>
         <?php foreach ($d['sektioner'] as $s): ?><option value="<?= e($s) ?>"<?= lg_old('sektion') === $s ? ' selected' : '' ?>><?= e($s) ?></option><?php endforeach; ?>
-      </select>
-      <label for="sku-input">ID *</label>
-      <input type="text" name="nummer" id="sku-input" required maxlength="20" placeholder="123" value="<?= e(lg_old('nummer')) ?>">
-    </div>
-    <div class="sl-add-grid">
-      <label for="item-name">Navn *</label>
-      <input type="text" name="navn" id="item-name" required value="<?= e(lg_old('navn')) ?>">
-      <label for="item-location">Placering</label>
-      <input type="text" name="placering" id="item-location" value="<?= e(lg_old('placering')) ?>">
-    </div>
-    <div class="sl-form-group">
-      <label for="item-description">Beskrivelse</label>
-      <textarea name="beskrivelse" id="item-description" rows="3" class="sl-wide"><?= e(lg_old('beskrivelse')) ?></textarea>
-    </div>
-    <div class="sl-form-actions">
-      <button type="submit" class="sl-btn sl-btn-primary">Tilføj Enhed</button>
-      <a href="./" class="sl-btn">Annuller</a>
-    </div>
-  </form>
-</div>
-<div class="sl-section">
-  <h3>Live Preview</h3>
-  <div class="sl-preview">
-    <table class="sl-table">
-      <thead><tr><th class="sl-col-check"></th><th>ID</th><th>Navn</th><th>Placering</th><th>Status</th></tr></thead>
-      <tbody><tr>
-        <td><input type="checkbox" disabled aria-label="Eksempel"></td>
-        <td><strong id="preview-sku" class="sl-muted">-</strong></td>
-        <td id="preview-name" class="sl-muted">-</td>
-        <td id="preview-location" class="sl-muted">-</td>
-        <td><span class="sl-badge sl-badge-success">Tilgængelig</span></td>
-      </tr></tbody>
-    </table>
-  </div>
-</div>
-<?php
-    lg_end();
-}
-
-function lg_page_edit(array $d, int $id): void
-{
-    $i = lg_item_index($d, $id);
-    if ($i === null) { lg_not_found(); return; }
-    $e = $d['enheder'][$i];
-    $val = function (string $k) use ($e) { return lg_old($k, (string)$e[$k]); };
-    lg_start('Rediger ' . $e['navn'], 'inventar');
-    ?>
-<div class="sl-page-header">
-  <h1>Rediger Enhed</h1>
-  <a href="<?= e(lg_url(['side' => 'info', 'id' => $id])) ?>" class="sl-btn">Annuller</a>
-</div>
-<div class="sl-section">
-  <form method="post" class="sl-form">
-    <?= lg_csrf() ?><input type="hidden" name="handling" value="rediger"><input type="hidden" name="id" value="<?= $id ?>">
-    <div class="sl-form-group"><label for="f-sku">ID (SKU) *</label><input type="text" id="f-sku" name="sku" required value="<?= e($val('sku')) ?>"></div>
-    <div class="sl-form-group"><label for="f-navn">Navn *</label><input type="text" id="f-navn" name="navn" required value="<?= e($val('navn')) ?>"></div>
-    <div class="sl-form-group"><label for="f-plac">Placering</label><input type="text" id="f-plac" name="placering" value="<?= e($val('placering')) ?>"></div>
-    <div class="sl-form-group"><label for="f-besk">Beskrivelse</label><textarea id="f-besk" name="beskrivelse" rows="5"><?= e($val('beskrivelse')) ?></textarea></div>
-    <div class="sl-form-actions">
-      <button type="submit" class="sl-btn sl-btn-primary">Opdater Enhed</button>
-      <a href="<?= e(lg_url(['side' => 'info', 'id' => $id])) ?>" class="sl-btn">Annuller</a>
-    </div>
-  </form>
-</div>
+      </select></td></tr>
+    <tr><th><label for="f-nr">ID-nummer *</label></th><td><input type="text" id="f-nr" name="nummer" required maxlength="20" placeholder="fx 012" value="<?= e(lg_old('nummer')) ?>" class="sl-short">
+      <span class="sl-small">Fuldt ID: <strong id="f-full">-</strong></span></td></tr>
+    <?php endif; ?>
+    <tr><th><label for="f-navn">Navn *</label></th><td><input type="text" id="f-navn" name="navn" required maxlength="200" value="<?= e($val('navn')) ?>"></td></tr>
+    <tr><th><label for="f-plac">Placering</label></th><td><input type="text" id="f-plac" name="placering" maxlength="200" value="<?= e($val('placering')) ?>" placeholder="fx Reol 2, hylde 3"></td></tr>
+    <tr><th><label for="f-besk">Beskrivelse</label></th><td><textarea id="f-besk" name="beskrivelse" rows="4"><?= e($val('beskrivelse')) ?></textarea></td></tr>
+    <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main"><?= $edit ? 'Gem ændringer' : 'Tilføj enhed' ?></button> <a href="<?= e($back) ?>" class="sl-btn">Annuller</a></td></tr>
+  </table>
+</form>
 <?php
     lg_end();
 }
@@ -846,48 +795,38 @@ function lg_page_reserve(array $d, array $ids): void
         if ($i !== null && !isset($active[$id])) $free[] = $d['enheder'][$i];
     }
     $start = (int)ceil(time() / 900) * 900;
-    $fra = lg_old('fra', date('Y-m-d\TH:i', $start));
-    $til = lg_old('til', date('Y-m-d\TH:i', $start + 86400));
     $many = count($free) > 1;
 
     lg_start('Reserver', 'inventar');
+    lg_back('./', 'Tilbage til inventar');
     if (!$free) {
-        echo '<div class="sl-alert sl-alert-danger">Ingen tilgængelige Enheder fundet</div><p><a class="sl-btn" href="./">Tilbage til inventar</a></p>';
+        lg_title('Reserver');
+        echo '<p>De valgte enheder er allerede reserveret.</p>';
         lg_end();
         return;
     }
+    lg_title($many ? 'Reserver ' . count($free) . ' enheder' : 'Reserver ' . $free[0]['navn']);
     ?>
-<div class="sl-page-header">
-  <h1><?= $many ? 'Reserver flere Enheder' : 'Reserver Enhed' ?></h1>
-  <a href="./" class="sl-btn">Tilbage til inventar</a>
+<div class="sl-table-wrap">
+<table class="sl-table sl-table-small">
+  <thead><tr><th>ID</th><th>Navn</th><th>Placering</th></tr></thead>
+  <tbody>
+  <?php foreach ($free as $e): ?><tr><td class="sl-nowrap"><?= e($e['sku']) ?></td><td><?= e($e['navn']) ?></td><td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td></tr><?php endforeach; ?>
+  </tbody>
+</table>
 </div>
-<div class="sl-section">
-  <?php if ($many): ?>
-  <h3>Valgte Enheder (<?= count($free) ?>)</h3>
-  <ul>
-    <?php foreach ($free as $e): ?><li><strong><?= e($e['navn']) ?></strong> (<?= e($e['sku']) ?>)</li><?php endforeach; ?>
-  </ul>
-  <?php else: ?>
-  <h2><?= e($free[0]['navn']) ?></h2>
-  <p><strong>ID:</strong> <?= e($free[0]['sku']) ?></p>
-  <p><strong>Placering:</strong> <?= $free[0]['placering'] !== '' ? e($free[0]['placering']) : '-' ?></p>
-  <?php endif; ?>
-  <form method="post" class="sl-form">
-    <?= lg_csrf() ?><input type="hidden" name="handling" value="reserver">
-    <?php foreach ($free as $e): ?><input type="hidden" name="ids[]" value="<?= (int)$e['id'] ?>"><?php endforeach; ?>
-    <div class="sl-form-group"><label for="f-who">Brugers navn *</label><input type="text" id="f-who" value="<?= e($me['navn']) ?>" readonly></div>
-    <div class="sl-form-group"><label for="f-note"><?= $many ? 'Beskrivelse (hvad skal de bruges til?) *' : 'Beskrivelse (hvad skal det reserveres til?)' ?></label>
-      <textarea id="f-note" name="note" rows="3"<?= $many ? ' required' : '' ?>><?= e(lg_old('note')) ?></textarea></div>
-    <div class="sl-form-row">
-      <div class="sl-form-group"><label for="f-fra">Fra *</label><input type="datetime-local" id="f-fra" name="fra" required value="<?= e($fra) ?>"></div>
-      <div class="sl-form-group"><label for="f-til">Til *</label><input type="datetime-local" id="f-til" name="til" required value="<?= e($til) ?>"></div>
-    </div>
-    <div class="sl-form-actions">
-      <button type="submit" class="sl-btn sl-btn-warning"><?= $many ? 'Reserver alle Enheder' : 'Reserver Enhed' ?></button>
-      <a href="./" class="sl-btn">Annuller</a>
-    </div>
-  </form>
-</div>
+
+<form method="post">
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="reserver">
+  <?php foreach ($free as $e): ?><input type="hidden" name="ids[]" value="<?= (int)$e['id'] ?>"><?php endforeach; ?>
+  <table class="sl-form">
+    <tr><th>Reserveres af</th><td><?= e($me['navn']) ?></td></tr>
+    <tr><th><label for="f-fra">Fra *</label></th><td><input type="datetime-local" id="f-fra" name="fra" required value="<?= e(lg_old('fra', date('Y-m-d\TH:i', $start))) ?>"></td></tr>
+    <tr><th><label for="f-til">Til *</label></th><td><input type="datetime-local" id="f-til" name="til" required value="<?= e(lg_old('til', date('Y-m-d\TH:i', $start + 86400))) ?>"></td></tr>
+    <tr><th><label for="f-note">Formål<?= $many ? ' *' : '' ?></label></th><td><textarea id="f-note" name="note" rows="3"<?= $many ? ' required' : '' ?> placeholder="Hvad skal det bruges til?"><?= e(lg_old('note')) ?></textarea></td></tr>
+    <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main">Reserver</button> <a href="./" class="sl-btn">Annuller</a></td></tr>
+  </table>
+</form>
 <?php
     lg_end();
 }
@@ -905,120 +844,99 @@ function lg_page_history(array $d): void
     $hist = array_filter($d['reservationer'], function ($r) use ($items, $t) {
         if ($t === '') return true;
         $e = $items[(int)$r['enhed']] ?? ['navn' => '', 'sku' => ''];
-        return strpos(sc_lower($e['navn'] . ' ' . $e['sku'] . ' ' . $r['navn']), $t) !== false;
+        return strpos(sc_lower($e['navn'] . ' ' . $e['sku'] . ' ' . $r['navn'] . ' ' . $r['note']), $t) !== false;
     });
     usort($hist, function ($a, $b) { return strcmp($b['oprettet'], $a['oprettet']); });
 
     lg_start('Historik', 'historik');
+    lg_title('Historik', '', 'Alle reservationer, de nyeste først.');
     ?>
-<div class="sl-page-header">
-  <h1>Historik</h1>
-  <a href="./" class="sl-btn">Tilbage til inventar</a>
-</div>
-<div class="sl-search-box">
-  <form method="get">
-    <input type="hidden" name="side" value="historik">
-    <input type="text" name="search" value="<?= e($search) ?>" placeholder="Søg efter Enhedsnavn, ID, eller brugers navn...">
-    <button type="submit" class="sl-btn sl-btn-primary">Søg</button>
-    <?php if ($search !== ''): ?><a href="<?= e(lg_url(['side' => 'historik'])) ?>" class="sl-btn">Ryd</a><?php endif; ?>
-  </form>
-</div>
-<div class="sl-section">
-  <div class="sl-table-wrap">
-  <table class="sl-table">
-    <thead><tr><th>Enhed ID</th><th>Enhedsnavn</th><th>Brugers navn</th><th>Fra</th><th>Til</th><th>Reserveret</th><th>Status</th></tr></thead>
-    <tbody>
-    <?php if (!$hist): ?><tr><td colspan="7">Ingen historik fundet.</td></tr><?php endif; ?>
-    <?php foreach ($hist as $r): $e = $items[(int)$r['enhed']] ?? null; ?>
-      <tr>
-        <td><?= $e ? e($e['sku']) : '-' ?></td>
-        <td><strong><?= $e ? '<a href="' . e(lg_url(['side' => 'info', 'id' => $e['id']])) . '">' . e($e['navn']) . '</a>' : '(slettet)' ?></strong></td>
-        <td><?= e($r['navn']) ?></td>
-        <td><?= e(lg_dmy($r['fra'])) ?></td>
-        <td><?= e(lg_dmy($r['til'])) ?></td>
-        <td><?= e(lg_dmy($r['oprettet'])) ?></td>
-        <td><?= $r['status'] === 'aktiv' ? (lg_overdue($r) ? '<span class="sl-badge sl-badge-danger">Overskredet</span>' : '<span class="sl-badge sl-badge-warning">Aktiv</span>') : '<span class="sl-badge sl-badge-success">Returneret</span>' ?></td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-  </div>
+<form method="get" class="sl-toolbar">
+  <input type="hidden" name="side" value="historik">
+  <label for="h-search" class="sl-hide">Søg</label>
+  <input type="text" id="h-search" name="search" value="<?= e($search) ?>" placeholder="Søg efter enhed, ID, navn eller formål">
+  <button type="submit" class="sl-btn">Søg</button>
+  <?php if ($search !== ''): ?><a href="<?= e(lg_url(['side' => 'historik'])) ?>" class="sl-btn">Ryd</a><?php endif; ?>
+</form>
+<div class="sl-table-wrap">
+<table class="sl-table">
+  <thead><tr><th>ID</th><th>Enhed</th><th>Reserveret af</th><th>Fra</th><th>Til</th><th>Formål</th><th>Status</th></tr></thead>
+  <tbody>
+  <?php if (!$hist): ?><tr><td colspan="7" class="sl-empty">Ingen reservationer fundet.</td></tr><?php endif; ?>
+  <?php foreach ($hist as $r): $e = $items[(int)$r['enhed']] ?? null; ?>
+    <tr>
+      <td class="sl-nowrap"><?= $e ? e($e['sku']) : '-' ?></td>
+      <td><?= $e ? '<a href="' . e(lg_url(['side' => 'info', 'id' => $e['id']])) . '" data-popup>' . e($e['navn']) . '</a>' : '(slettet)' ?></td>
+      <td><?= e($r['navn']) ?></td>
+      <td class="sl-nowrap"><?= e(lg_dmy($r['fra'])) ?></td>
+      <td class="sl-nowrap"><?= e(lg_dmy($r['til'])) ?></td>
+      <td><?= e($r['note']) ?></td>
+      <td><?= lg_res_status($r) ?></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
 </div>
 <?php
     lg_end();
 }
 
 /* =========================================================
-   Indstillinger (sektioner, import/eksport, min konto)
+   Indstillinger
 ========================================================= */
 
 function lg_page_settings(array $d): void
 {
     global $me;
     lg_start('Indstillinger', 'indstillinger');
+    lg_title('Indstillinger');
     ?>
-<div class="sl-page-header">
-  <h1>Indstillinger</h1>
-</div>
-<div class="sl-section">
-  <h2>Administrer sektioner</h2>
-  <div class="sl-card">
-    <h3>Tilføj ny sektion</h3>
-    <form method="post" class="sl-inline-form">
-      <?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-ny">
-      <div><label for="f-sek">Sektion navn</label>
-        <input type="text" id="f-sek" name="navn" placeholder="f.eks. LAGER, SCENE, VIDEO" maxlength="30" required value="<?= e(lg_old('navn')) ?>"></div>
-      <button type="submit" class="sl-btn sl-btn-primary">Tilføj sektion</button>
-    </form>
-  </div>
-  <div class="sl-card">
-    <h3>Nuværende sektioner</h3>
-    <?php if (!$d['sektioner']): ?><p class="sl-muted">Ingen sektioner fundet.</p><?php endif; ?>
-    <div class="sl-list">
-      <?php foreach ($d['sektioner'] as $s): ?>
-      <div class="sl-list-row">
-        <span><?= e($s) ?></span>
-        <form method="post" data-confirm="Er du sikker på at du vil slette sektionen '<?= e($s) ?>'? Enhederne bliver ikke slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-slet"><input type="hidden" name="navn" value="<?= e($s) ?>">
-          <button type="submit" class="sl-btn sl-btn-danger sl-btn-sm">Slet</button></form>
-      </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
+<h2>Sektioner</h2>
+<p class="sl-small">Sektionen er første del af en enheds ID, fx <strong>LYD</strong>-012.</p>
+<table class="sl-table sl-table-small">
+  <thead><tr><th>Sektion</th><th class="sl-col-act"></th></tr></thead>
+  <tbody>
+  <?php if (!$d['sektioner']): ?><tr><td colspan="2" class="sl-empty">Ingen sektioner.</td></tr><?php endif; ?>
+  <?php foreach ($d['sektioner'] as $s): ?>
+    <tr><td><?= e($s) ?></td><td class="sl-col-act">
+      <form method="post" data-confirm="Slet sektionen <?= e($s) ?>? Enhederne bliver ikke slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-slet"><input type="hidden" name="navn" value="<?= e($s) ?>"><button type="submit" class="sl-link sl-danger">Slet</button></form>
+    </td></tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
+<form method="post" class="sl-toolbar">
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-ny">
+  <label for="f-sek">Ny sektion</label>
+  <input type="text" id="f-sek" name="navn" maxlength="30" required placeholder="fx VIDEO" value="<?= e(lg_old('navn')) ?>" class="sl-short">
+  <button type="submit" class="sl-btn">Tilføj</button>
+</form>
 
-  <div class="sl-card">
-    <h2>Import/Export Data</h2>
-    <div class="sl-sub">
-      <h3>Importer Enheder</h3>
-      <p class="sl-muted">Upload en Excel-fil (.xlsx) eller CSV-fil med kolonnerne: ID, Navn, Placering (og evt. Beskrivelse). ID'er, der allerede findes, springes over.</p>
-      <form method="post" enctype="multipart/form-data" class="sl-inline-form">
-        <?= lg_csrf() ?><input type="hidden" name="handling" value="import">
-        <div><input type="file" name="fil" accept=".xlsx,.csv" required aria-label="Vælg fil"></div>
-        <button type="submit" class="sl-btn sl-btn-primary">Importer</button>
-      </form>
-    </div>
-    <div class="sl-sub">
-      <h3>Eksporter Enheder</h3>
-      <p class="sl-muted">Download alle enheder som Excel-fil</p>
-      <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="eksport">
-        <button type="submit" class="sl-btn sl-btn-success">Eksporter til Excel</button></form>
-    </div>
-  </div>
+<h2>Importér fra Excel</h2>
+<p class="sl-small">Excel-fil (.xlsx) eller CSV-fil med kolonnerne <strong>ID, Navn, Placering</strong> og evt. <strong>Beskrivelse</strong>. ID'er, der allerede findes, springes over.</p>
+<form method="post" enctype="multipart/form-data" class="sl-toolbar">
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="import">
+  <label for="f-fil" class="sl-hide">Fil</label>
+  <input type="file" id="f-fil" name="fil" accept=".xlsx,.csv" required>
+  <button type="submit" class="sl-btn">Importér</button>
+</form>
 
-  <div class="sl-card">
-    <h2>Min konto</h2>
-    <p class="sl-muted">Du er logget ind som <strong><?= e($me['brugernavn']) ?></strong> (<?= $me['rolle'] === 'admin' ? 'administrator' : 'bruger' ?>).</p>
-    <form method="post" class="sl-form">
-      <?= lg_csrf() ?><input type="hidden" name="handling" value="min-konto">
-      <div class="sl-form-group"><label for="k-navn">Navn (vises når du reserverer)</label><input type="text" id="k-navn" name="navn" required value="<?= e($me['navn']) ?>"></div>
-      <div class="sl-form-group"><label for="k-pw">Nuværende adgangskode (kun hvis du vil skifte den)</label><input type="password" id="k-pw" name="kodeord" autocomplete="current-password"></div>
-      <div class="sl-form-row">
-        <div class="sl-form-group"><label for="k-pw1">Ny adgangskode</label><input type="password" id="k-pw1" name="nytKodeord" autocomplete="new-password"></div>
-        <div class="sl-form-group"><label for="k-pw2">Gentag ny adgangskode</label><input type="password" id="k-pw2" name="gentag" autocomplete="new-password"></div>
-      </div>
-      <button type="submit" class="sl-btn sl-btn-primary">Gem</button>
-    </form>
-  </div>
-</div>
+<h2>Eksportér</h2>
+<p class="sl-small">Hent alle <?= count($d['enheder']) ?> enheder som en fil, der kan åbnes i Excel.</p>
+<form method="post" class="sl-buttons"><?= lg_csrf() ?><input type="hidden" name="handling" value="eksport">
+  <button type="submit" class="sl-btn">Eksportér til Excel</button></form>
+
+<h2>Min konto</h2>
+<form method="post">
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="min-konto">
+  <table class="sl-form">
+    <tr><th>Brugernavn</th><td><?= e($me['brugernavn']) ?> (<?= $me['rolle'] === 'admin' ? 'administrator' : 'bruger' ?>)</td></tr>
+    <tr><th><label for="k-navn">Navn</label></th><td><input type="text" id="k-navn" name="navn" required value="<?= e($me['navn']) ?>"></td></tr>
+    <tr><th><label for="k-pw">Nuværende adgangskode</label></th><td><input type="password" id="k-pw" name="kodeord" autocomplete="current-password"><br><span class="sl-small">Kun hvis du vil skifte adgangskode.</span></td></tr>
+    <tr><th><label for="k-pw1">Ny adgangskode</label></th><td><input type="password" id="k-pw1" name="nytKodeord" autocomplete="new-password"></td></tr>
+    <tr><th><label for="k-pw2">Gentag ny</label></th><td><input type="password" id="k-pw2" name="gentag" autocomplete="new-password"></td></tr>
+    <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main">Gem</button></td></tr>
+  </table>
+</form>
 <?php
     lg_end();
 }
@@ -1036,70 +954,57 @@ function lg_page_users(): void
     unset($_SESSION['lg_creds']);
 
     lg_start('Brugere', 'brugere');
+    lg_title('Brugere', '', 'Alle, der kan logge ind på lageret.');
+    if ($creds):
+        $host = preg_replace('~[^A-Za-z0-9.\-:\[\]]~', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+        $url = (sc_is_https() ? 'https' : 'http') . '://' . $host . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/lager/index.php')), '/') . '/';
+        $text = 'Hej ' . explode(' ', $creds['navn'])[0] . "!\n\nDu kan nu bruge Teater Scenarios lager her:\n$url\n\nBrugernavn: {$creds['brugernavn']}\nAdgangskode: {$creds['kodeord']}\n\nSkift gerne adgangskoden under Indstillinger, når du er logget ind.";
     ?>
-<div class="sl-page-header">
-  <h1>Brugerstyring</h1>
+<div class="sl-alert sl-alert-success">
+  <strong>Login er klar.</strong> Send denne besked til <?= e($creds['navn']) ?>. Adgangskoden bliver ikke vist igen.
+  <pre class="sl-creds" id="sl-creds-text"><?= e($text) ?></pre>
+  <button type="button" class="sl-btn" id="sl-copy">Kopiér beskeden</button>
 </div>
-<div class="sl-section">
-  <?php if ($creds):
-      $host = preg_replace('~[^A-Za-z0-9.\-:\[\]]~', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
-      $url = (sc_is_https() ? 'https' : 'http') . '://' . $host . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/lager/index.php')), '/') . '/';
-      $text = 'Hej ' . explode(' ', $creds['navn'])[0] . "!\n\nDu kan nu bruge Teater Scenarios lager her:\n$url\n\nBrugernavn: {$creds['brugernavn']}\nAdgangskode: {$creds['kodeord']}\n\nSkift gerne adgangskoden under Indstillinger, når du er logget ind.";
-  ?>
-  <div class="sl-alert sl-alert-success">
-    <strong>Login er klar.</strong> Send denne besked til <?= e($creds['navn']) ?>, fx på sms eller mail. Adgangskoden bliver ikke vist igen.
-    <pre class="sl-creds" id="sl-creds-text"><?= e($text) ?></pre>
-    <button type="button" class="sl-btn sl-btn-success sl-btn-sm" id="sl-copy">Kopiér beskeden</button>
-  </div>
-  <?php endif; ?>
+    <?php endif; ?>
 
-  <div class="sl-card">
-    <h3>Tilføj ny bruger</h3>
-    <form method="post" class="sl-form" id="sl-new-user">
-      <?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-ny">
-      <div class="sl-form-group"><label for="u-navn">Navn *</label><input type="text" id="u-navn" name="navn" required placeholder="fx Anna Hansen" value="<?= e(lg_old('navn')) ?>" autocomplete="off"></div>
-      <div class="sl-form-group"><label for="u-bn">Brugernavn *</label><input type="text" id="u-bn" name="brugernavn" required placeholder="fx anna" value="<?= e(lg_old('brugernavn')) ?>" autocomplete="off" autocapitalize="none">
-        <p class="sl-help">Små bogstaver, uden mellemrum.</p></div>
-      <div class="sl-form-group"><label for="u-pw">Midlertidig adgangskode *</label><input type="text" id="u-pw" name="kodeord" required value="<?= e(lg_make_password()) ?>" autocomplete="off">
-        <p class="sl-help">Personen kan selv skifte den under Indstillinger. <button type="button" class="sl-link" id="u-pw-new">Lav en ny</button></p></div>
-      <div class="sl-form-group"><label for="u-rolle">Rolle</label>
-        <select id="u-rolle" name="rolle">
-          <option value="bruger">Bruger – kan se, reservere og rette udstyr</option>
-          <option value="admin"<?= lg_old('rolle') === 'admin' ? ' selected' : '' ?>>Administrator – kan også styre brugere</option>
-        </select></div>
-      <button type="submit" class="sl-btn sl-btn-primary">Tilføj bruger</button>
-    </form>
-  </div>
-
-  <div class="sl-card">
-    <h3>Nuværende brugere</h3>
-    <div class="sl-table-wrap">
-    <table class="sl-table">
-      <thead><tr><th>Brugernavn</th><th>Navn</th><th>Rolle</th><th>Sidst logget ind</th><th>Handlinger</th></tr></thead>
-      <tbody>
-      <?php foreach ($users as $u): $self = strcasecmp($u['brugernavn'], $me['brugernavn']) === 0; ?>
-        <tr>
-          <td><strong><?= e($u['brugernavn']) ?></strong></td>
-          <td><?= e($u['navn']) ?><?= $self ? ' <span class="sl-muted">(dig)</span>' : '' ?></td>
-          <td><?= $u['rolle'] === 'admin' ? 'Administrator' : 'Bruger' ?></td>
-          <td><?= $u['sidstLoggetInd'] ? e(lg_dmy($u['sidstLoggetInd'])) : '<span class="sl-muted">Aldrig</span>' ?></td>
-          <td>
-            <?php if (!$self): ?>
-            <form method="post" data-confirm="<?= e($u['navn']) ?> får en ny adgangskode, og den gamle holder op med at virke."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-kodeord"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>">
-              <button type="submit" class="sl-btn sl-btn-sm">Ny adgangskode</button></form>
-            <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-rolle"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>"><input type="hidden" name="rolle" value="<?= $u['rolle'] === 'admin' ? 'bruger' : 'admin' ?>">
-              <button type="submit" class="sl-btn sl-btn-sm"><?= $u['rolle'] === 'admin' ? 'Gør til bruger' : 'Gør til administrator' ?></button></form>
-            <form method="post" data-confirm="Er du sikker på at du vil slette brugeren &quot;<?= e($u['brugernavn']) ?>&quot;? Denne handling kan ikke fortrydes."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-slet"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>">
-              <button type="submit" class="sl-btn sl-btn-danger sl-btn-sm">Slet</button></form>
-            <?php else: ?><span class="sl-muted">-</span><?php endif; ?>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-    </div>
-  </div>
+<div class="sl-table-wrap">
+<table class="sl-table">
+  <thead><tr><th>Navn</th><th>Brugernavn</th><th>Rolle</th><th>Sidst logget ind</th><th></th></tr></thead>
+  <tbody>
+  <?php foreach ($users as $u): $self = strcasecmp($u['brugernavn'], $me['brugernavn']) === 0; ?>
+    <tr>
+      <td><?= e($u['navn']) ?><?= $self ? ' <span class="sl-small">(dig)</span>' : '' ?></td>
+      <td><?= e($u['brugernavn']) ?></td>
+      <td><?= $u['rolle'] === 'admin' ? 'Administrator' : 'Bruger' ?></td>
+      <td class="sl-nowrap"><?= $u['sidstLoggetInd'] ? e(lg_dmy($u['sidstLoggetInd'])) : 'Aldrig' ?></td>
+      <td class="sl-nowrap">
+        <?php if (!$self): ?>
+        <form method="post" data-confirm="<?= e($u['navn']) ?> får en ny adgangskode, og den gamle holder op med at virke."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-kodeord"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>"><button type="submit" class="sl-link">Ny adgangskode</button></form> ·
+        <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-rolle"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>"><input type="hidden" name="rolle" value="<?= $u['rolle'] === 'admin' ? 'bruger' : 'admin' ?>"><button type="submit" class="sl-link"><?= $u['rolle'] === 'admin' ? 'Gør til bruger' : 'Gør til administrator' ?></button></form> ·
+        <form method="post" data-confirm="Slet brugeren <?= e($u['brugernavn']) ?>? Det kan ikke fortrydes."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-slet"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>"><button type="submit" class="sl-link sl-danger">Slet</button></form>
+        <?php endif; ?>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
 </div>
+
+<h2>Tilføj bruger</h2>
+<form method="post" id="sl-new-user">
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-ny">
+  <table class="sl-form">
+    <tr><th><label for="u-navn">Navn *</label></th><td><input type="text" id="u-navn" name="navn" required placeholder="fx Anna Hansen" value="<?= e(lg_old('navn')) ?>" autocomplete="off"></td></tr>
+    <tr><th><label for="u-bn">Brugernavn *</label></th><td><input type="text" id="u-bn" name="brugernavn" required placeholder="fx anna" value="<?= e(lg_old('brugernavn')) ?>" autocomplete="off" autocapitalize="none"><br><span class="sl-small">Små bogstaver, uden mellemrum.</span></td></tr>
+    <tr><th><label for="u-pw">Adgangskode *</label></th><td><input type="text" id="u-pw" name="kodeord" required value="<?= e(lg_make_password()) ?>" autocomplete="off"> <button type="button" class="sl-link" id="u-pw-new">Lav en ny</button><br><span class="sl-small">Midlertidig – personen kan selv skifte den.</span></td></tr>
+    <tr><th><label for="u-rolle">Rolle</label></th><td>
+      <select id="u-rolle" name="rolle">
+        <option value="bruger">Bruger</option>
+        <option value="admin"<?= lg_old('rolle') === 'admin' ? ' selected' : '' ?>>Administrator (kan også styre brugere)</option>
+      </select></td></tr>
+    <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main">Tilføj bruger</button></td></tr>
+  </table>
+</form>
 <?php
     lg_end();
 }
