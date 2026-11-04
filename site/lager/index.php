@@ -715,7 +715,7 @@ function lg_page_inventory(array $d): void
   <button type="button" class="sl-link" id="sl-bulk-clear">Fravælg</button>
 </div>
 
-<aside class="sl-drawer" id="sl-drawer" hidden aria-label="Enhed"></aside>
+<div class="sl-overlay" id="sl-drawer" hidden><div class="sl-dialog" id="sl-dialog" role="dialog" aria-modal="true" aria-label="Enhed"></div></div>
 <div class="sl-toast" id="sl-toast" role="status" hidden></div>
 <?php
     lg_end();

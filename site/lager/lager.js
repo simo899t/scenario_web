@@ -76,7 +76,8 @@
   var table = $("sl-inventar");
   if (!table) return;
   var tbody = table.tBodies[0];
-  var drawer = $("sl-drawer");
+  var drawer = $("sl-drawer");   // mørk baggrund (overlay)
+  var dialog = $("sl-dialog");   // selve vinduet
   var toastEl = $("sl-toast");
   var q = $("f-q"), statusSel = $("f-status"), sekBox = $("f-sek");
   var coll = new Intl.Collator("da", { numeric: true, sensitivity: "base" });
@@ -180,7 +181,7 @@
       .map(function (r) { return r.getAttribute("data-id"); });
   };
 
-  /* ---------- Panelet i højre side ---------- */
+  /* ---------- Vinduet (overlay) ---------- */
   function openPanel(mode, opts) {
     var p = new URLSearchParams({ side: "panel", panel: mode });
     if (opts.id) p.set("id", opts.id);
@@ -192,7 +193,7 @@
         return r.text();
       })
       .then(function (html) {
-        drawer.innerHTML = html;
+        dialog.innerHTML = html;
         drawer.hidden = false;
         drawer.scrollTop = 0;
         document.body.classList.add("sl-drawer-open");
@@ -202,12 +203,13 @@
         saveState();
         var first = drawer.querySelector("input[type=text], textarea");
         if (first && mode !== "info") first.focus();
+        else if (dialog.querySelector(".sl-close")) dialog.querySelector(".sl-close").focus({ preventScroll: true });
       })
       .catch(function () { /* netværksfejl – prøv igen */ });
   }
   function closePanel() {
     drawer.hidden = true;
-    drawer.innerHTML = "";
+    dialog.innerHTML = "";
     document.body.classList.remove("sl-drawer-open");
     openId = null;
     rows().forEach(function (r) { r.classList.remove("sl-current"); });
@@ -271,9 +273,13 @@
   });
 
   /* ---------- Klik ---------- */
+  // Klik på den mørke baggrund lukker vinduet (men ikke hvis man trækker en markering ud af vinduet)
+  var downOnBackdrop = false;
+  drawer.addEventListener("mousedown", function (e) { downOnBackdrop = e.target === drawer; });
   document.addEventListener("click", function (e) {
     var t = e.target;
-    if (t.closest("[data-close]")) { e.preventDefault(); closePanel(); return; }
+    if ((t === drawer && downOnBackdrop) || t.closest("[data-close]")) { e.preventDefault(); closePanel(); return; }
+    if (t === drawer) return;
     var pb = t.closest("[data-panel]");
     if (pb) {
       if (e.ctrlKey || e.metaKey) return;
