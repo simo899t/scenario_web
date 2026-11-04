@@ -634,7 +634,7 @@ function lg_page_inventory(array $d): void
       <table class="sl-table">
         <thead>
           <tr>
-            <th style="width: 50px;"></th>
+            <th class="sl-col-check"></th>
             <?= $th('ID', 'id') ?><?= $th('Navn', 'name') ?><?= $th('Placering', 'location') ?>
             <th>Status</th>
             <th>Handlinger</th>
@@ -651,7 +651,7 @@ function lg_page_inventory(array $d): void
             <td><strong><a class="sl-name-link" href="<?= e(lg_url(['side' => 'info', 'id' => $e['id']])) ?>"><?= e($e['navn']) ?></a></strong></td>
             <td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td>
             <td><?= lg_badge($r) ?>
-              <?php if ($r): ?><div class="sl-small sl-muted" style="margin-top: 0.25rem;"><?= e($r['navn']) ?><br>Til: <?= e(lg_dmy($r['til'])) ?></div><?php endif; ?></td>
+              <?php if ($r): ?><div class="sl-small sl-muted"><?= e($r['navn']) ?><br>Til: <?= e(lg_dmy($r['til'])) ?></div><?php endif; ?></td>
             <td>
               <a href="<?= e(lg_url(['side' => 'info', 'id' => $e['id']])) ?>" class="sl-btn sl-btn-sm">Info</a>
               <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $e['id']])) ?>" class="sl-btn sl-btn-primary sl-btn-sm">Rediger</a>
@@ -702,7 +702,7 @@ function lg_page_info(array $d, int $id): void
     <div class="sl-info-item"><strong>Status</strong><span><?= lg_badge($cur) ?></span></div>
   </div>
   <?php if ($e['beskrivelse'] !== ''): ?>
-  <div class="sl-info-item" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #d2d2d7;">
+  <div class="sl-info-item sl-desc">
     <strong>Beskrivelse</strong><span><?= nl2br(e($e['beskrivelse'])) ?></span>
   </div>
   <?php endif; ?>
@@ -718,7 +718,7 @@ function lg_page_info(array $d, int $id): void
     <p><strong>Reserveret:</strong> <?= e(lg_dmy($cur['oprettet'])) ?></p>
     <?php if ($cur['note'] !== ''): ?><p><strong>Beskrivelse:</strong> <?= nl2br(e($cur['note'])) ?></p><?php endif; ?>
   </div>
-  <form method="post" style="margin-top: 1rem;" data-confirm="Marker denne Enhed som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><input type="hidden" name="tilbage" value="info"><input type="hidden" name="ids[]" value="<?= $id ?>">
+  <form method="post" data-confirm="Marker denne Enhed som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><input type="hidden" name="tilbage" value="info"><input type="hidden" name="ids[]" value="<?= $id ?>">
     <button type="submit" class="sl-btn sl-btn-primary">Returner Enhed</button></form>
 </div>
 <?php endif; ?>
@@ -774,8 +774,8 @@ function lg_page_add(array $d): void
       <label for="item-location">Placering</label>
       <input type="text" name="placering" id="item-location" value="<?= e(lg_old('placering')) ?>">
     </div>
-    <div style="margin-bottom: 1rem;">
-      <label for="item-description" style="font-weight: 500; display: block; margin-bottom: 0.5rem;">Beskrivelse</label>
+    <div class="sl-form-group">
+      <label for="item-description">Beskrivelse</label>
       <textarea name="beskrivelse" id="item-description" rows="3" class="sl-wide"><?= e(lg_old('beskrivelse')) ?></textarea>
     </div>
     <div class="sl-form-actions">
@@ -784,11 +784,11 @@ function lg_page_add(array $d): void
     </div>
   </form>
 </div>
-<div class="sl-section" style="margin-top: 2rem;">
-  <h3 style="margin-bottom: 1rem;">Live Preview</h3>
+<div class="sl-section">
+  <h3>Live Preview</h3>
   <div class="sl-preview">
     <table class="sl-table">
-      <thead><tr><th style="width: 3rem;"></th><th>ID</th><th>Navn</th><th>Placering</th><th>Status</th></tr></thead>
+      <thead><tr><th class="sl-col-check"></th><th>ID</th><th>Navn</th><th>Placering</th><th>Status</th></tr></thead>
       <tbody><tr>
         <td><input type="checkbox" disabled aria-label="Eksempel"></td>
         <td><strong id="preview-sku" class="sl-muted">-</strong></td>
@@ -864,7 +864,7 @@ function lg_page_reserve(array $d, array $ids): void
 <div class="sl-section">
   <?php if ($many): ?>
   <h3>Valgte Enheder (<?= count($free) ?>)</h3>
-  <ul style="margin-bottom: 2rem;">
+  <ul>
     <?php foreach ($free as $e): ?><li><strong><?= e($e['navn']) ?></strong> (<?= e($e['sku']) ?>)</li><?php endforeach; ?>
   </ul>
   <?php else: ?>
@@ -875,7 +875,7 @@ function lg_page_reserve(array $d, array $ids): void
   <form method="post" class="sl-form">
     <?= lg_csrf() ?><input type="hidden" name="handling" value="reserver">
     <?php foreach ($free as $e): ?><input type="hidden" name="ids[]" value="<?= (int)$e['id'] ?>"><?php endforeach; ?>
-    <div class="sl-form-group"><label for="f-who">Brugers navn *</label><input type="text" id="f-who" value="<?= e($me['navn']) ?>" readonly style="background-color: #f5f5f5;"></div>
+    <div class="sl-form-group"><label for="f-who">Brugers navn *</label><input type="text" id="f-who" value="<?= e($me['navn']) ?>" readonly></div>
     <div class="sl-form-group"><label for="f-note"><?= $many ? 'Beskrivelse (hvad skal de bruges til?) *' : 'Beskrivelse (hvad skal det reserveres til?)' ?></label>
       <textarea id="f-note" name="note" rows="3"<?= $many ? ' required' : '' ?>><?= e(lg_old('note')) ?></textarea></div>
     <div class="sl-form-row">
@@ -932,7 +932,7 @@ function lg_page_history(array $d): void
     <?php foreach ($hist as $r): $e = $items[(int)$r['enhed']] ?? null; ?>
       <tr>
         <td><?= $e ? e($e['sku']) : '-' ?></td>
-        <td><strong><?= $e ? '<a href="' . e(lg_url(['side' => 'info', 'id' => $e['id']])) . '" style="color: inherit;">' . e($e['navn']) . '</a>' : '(slettet)' ?></strong></td>
+        <td><strong><?= $e ? '<a href="' . e(lg_url(['side' => 'info', 'id' => $e['id']])) . '">' . e($e['navn']) . '</a>' : '(slettet)' ?></strong></td>
         <td><?= e($r['navn']) ?></td>
         <td><?= e(lg_dmy($r['fra'])) ?></td>
         <td><?= e(lg_dmy($r['til'])) ?></td>
@@ -961,12 +961,12 @@ function lg_page_settings(array $d): void
   <h1>Indstillinger</h1>
 </div>
 <div class="sl-section">
-  <h2 style="margin-bottom: 1.5rem;">Administrer sektioner</h2>
+  <h2>Administrer sektioner</h2>
   <div class="sl-card">
     <h3>Tilføj ny sektion</h3>
     <form method="post" class="sl-inline-form">
       <?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-ny">
-      <div><label for="f-sek" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Sektion navn</label>
+      <div><label for="f-sek">Sektion navn</label>
         <input type="text" id="f-sek" name="navn" placeholder="f.eks. LAGER, SCENE, VIDEO" maxlength="30" required value="<?= e(lg_old('navn')) ?>"></div>
       <button type="submit" class="sl-btn sl-btn-primary">Tilføj sektion</button>
     </form>
@@ -974,10 +974,10 @@ function lg_page_settings(array $d): void
   <div class="sl-card">
     <h3>Nuværende sektioner</h3>
     <?php if (!$d['sektioner']): ?><p class="sl-muted">Ingen sektioner fundet.</p><?php endif; ?>
-    <div style="display: grid; gap: 0.75rem;">
+    <div class="sl-list">
       <?php foreach ($d['sektioner'] as $s): ?>
       <div class="sl-list-row">
-        <span style="font-size: 1.125rem; font-weight: 500;"><?= e($s) ?></span>
+        <span><?= e($s) ?></span>
         <form method="post" data-confirm="Er du sikker på at du vil slette sektionen '<?= e($s) ?>'? Enhederne bliver ikke slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="sektion-slet"><input type="hidden" name="navn" value="<?= e($s) ?>">
           <button type="submit" class="sl-btn sl-btn-danger sl-btn-sm">Slet</button></form>
       </div>
@@ -986,8 +986,8 @@ function lg_page_settings(array $d): void
   </div>
 
   <div class="sl-card">
-    <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem;">Import/Export Data</h2>
-    <div style="margin-bottom: 2rem;">
+    <h2>Import/Export Data</h2>
+    <div class="sl-sub">
       <h3>Importer Enheder</h3>
       <p class="sl-muted">Upload en Excel-fil (.xlsx) eller CSV-fil med kolonnerne: ID, Navn, Placering (og evt. Beskrivelse). ID'er, der allerede findes, springes over.</p>
       <form method="post" enctype="multipart/form-data" class="sl-inline-form">
@@ -996,7 +996,7 @@ function lg_page_settings(array $d): void
         <button type="submit" class="sl-btn sl-btn-primary">Importer</button>
       </form>
     </div>
-    <div style="border-top: 1px solid #e8e8ed; padding-top: 2rem;">
+    <div class="sl-sub">
       <h3>Eksporter Enheder</h3>
       <p class="sl-muted">Download alle enheder som Excel-fil</p>
       <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="eksport">
@@ -1005,9 +1005,9 @@ function lg_page_settings(array $d): void
   </div>
 
   <div class="sl-card">
-    <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem;">Min konto</h2>
+    <h2>Min konto</h2>
     <p class="sl-muted">Du er logget ind som <strong><?= e($me['brugernavn']) ?></strong> (<?= $me['rolle'] === 'admin' ? 'administrator' : 'bruger' ?>).</p>
-    <form method="post" class="sl-form" style="padding: 0;">
+    <form method="post" class="sl-form">
       <?= lg_csrf() ?><input type="hidden" name="handling" value="min-konto">
       <div class="sl-form-group"><label for="k-navn">Navn (vises når du reserverer)</label><input type="text" id="k-navn" name="navn" required value="<?= e($me['navn']) ?>"></div>
       <div class="sl-form-group"><label for="k-pw">Nuværende adgangskode (kun hvis du vil skifte den)</label><input type="password" id="k-pw" name="kodeord" autocomplete="current-password"></div>
@@ -1049,19 +1049,19 @@ function lg_page_users(): void
   <div class="sl-alert sl-alert-success">
     <strong>Login er klar.</strong> Send denne besked til <?= e($creds['navn']) ?>, fx på sms eller mail. Adgangskoden bliver ikke vist igen.
     <pre class="sl-creds" id="sl-creds-text"><?= e($text) ?></pre>
-    <button type="button" class="sl-btn sl-btn-success sl-btn-sm" id="sl-copy" style="width: auto !important;">Kopiér beskeden</button>
+    <button type="button" class="sl-btn sl-btn-success sl-btn-sm" id="sl-copy">Kopiér beskeden</button>
   </div>
   <?php endif; ?>
 
   <div class="sl-card">
     <h3>Tilføj ny bruger</h3>
-    <form method="post" class="sl-form" style="padding: 0;" id="sl-new-user">
+    <form method="post" class="sl-form" id="sl-new-user">
       <?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-ny">
       <div class="sl-form-group"><label for="u-navn">Navn *</label><input type="text" id="u-navn" name="navn" required placeholder="fx Anna Hansen" value="<?= e(lg_old('navn')) ?>" autocomplete="off"></div>
       <div class="sl-form-group"><label for="u-bn">Brugernavn *</label><input type="text" id="u-bn" name="brugernavn" required placeholder="fx anna" value="<?= e(lg_old('brugernavn')) ?>" autocomplete="off" autocapitalize="none">
         <p class="sl-help">Små bogstaver, uden mellemrum.</p></div>
       <div class="sl-form-group"><label for="u-pw">Midlertidig adgangskode *</label><input type="text" id="u-pw" name="kodeord" required value="<?= e(lg_make_password()) ?>" autocomplete="off">
-        <p class="sl-help">Personen kan selv skifte den under Indstillinger. <button type="button" class="sl-link" id="u-pw-new" style="color: #0071e3; font-size: 0.875rem;">Lav en ny</button></p></div>
+        <p class="sl-help">Personen kan selv skifte den under Indstillinger. <button type="button" class="sl-link" id="u-pw-new">Lav en ny</button></p></div>
       <div class="sl-form-group"><label for="u-rolle">Rolle</label>
         <select id="u-rolle" name="rolle">
           <option value="bruger">Bruger – kan se, reservere og rette udstyr</option>
@@ -1086,9 +1086,9 @@ function lg_page_users(): void
           <td>
             <?php if (!$self): ?>
             <form method="post" data-confirm="<?= e($u['navn']) ?> får en ny adgangskode, og den gamle holder op med at virke."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-kodeord"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>">
-              <button type="submit" class="sl-btn sl-btn-sm" style="width: auto !important;">Ny adgangskode</button></form>
+              <button type="submit" class="sl-btn sl-btn-sm">Ny adgangskode</button></form>
             <form method="post"><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-rolle"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>"><input type="hidden" name="rolle" value="<?= $u['rolle'] === 'admin' ? 'bruger' : 'admin' ?>">
-              <button type="submit" class="sl-btn sl-btn-sm" style="width: auto !important;"><?= $u['rolle'] === 'admin' ? 'Gør til bruger' : 'Gør til administrator' ?></button></form>
+              <button type="submit" class="sl-btn sl-btn-sm"><?= $u['rolle'] === 'admin' ? 'Gør til bruger' : 'Gør til administrator' ?></button></form>
             <form method="post" data-confirm="Er du sikker på at du vil slette brugeren &quot;<?= e($u['brugernavn']) ?>&quot;? Denne handling kan ikke fortrydes."><?= lg_csrf() ?><input type="hidden" name="handling" value="bruger-slet"><input type="hidden" name="brugernavn" value="<?= e($u['brugernavn']) ?>">
               <button type="submit" class="sl-btn sl-btn-danger sl-btn-sm">Slet</button></form>
             <?php else: ?><span class="sl-muted">-</span><?php endif; ?>
