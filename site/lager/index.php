@@ -165,7 +165,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         switch ($a) {
             case 'reserver': {
                 $ids = lg_ids($_POST['ids'] ?? []);
-                $back = ['side' => 'reserver', 'ids' => implode(',', $ids)];
+                $back = isset($_POST['retur']) ? lg_retur() : ['side' => 'reserver', 'ids' => implode(',', $ids)];
                 $fra = lg_clean_dt($_POST['fra'] ?? '');
                 $til = lg_clean_dt($_POST['til'] ?? '');
                 $note = sc_text($_POST['note'] ?? '', 2000);
@@ -188,6 +188,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 });
                 if (!$done) throw new ScApiError('Enhederne er allerede reserveret af en anden.');
                 lg_flash('ok', $done === 1 ? 'Enheden er reserveret.' : "$done enheder er reserveret.");
+                if (isset($_POST['retur'])) lg_go(lg_retur());
                 lg_go(count($ids) === 1 ? ['vis' => $ids[0]] : []);
             }
 
@@ -628,8 +629,6 @@ function lg_page_inventory(array $d): void
     $sub = count($d['enheder']) . ' enheder i alt · ' . $nRes . ' reserveret' . ($nOver ? ' · <span class="sl-st-bad">' . $nOver . ' overskredet</span>' : '');
     lg_title('Inventar', '<a href="' . e(lg_url(['side' => 'ny'])) . '" class="sl-btn sl-btn-main">Tilføj enhed</a>', $sub);
     ?>
-<div class="sl-split<?= $vis ? ' has-panel' : '' ?>" id="sl-split">
-<div class="sl-split-main">
 <form method="get" class="sl-toolbar" data-autosubmit>
   <?= lg_hidden(array_intersect_key($state, ['sort' => 1, 'dir' => 1]) + ($vis ? ['vis' => (string)$vis] : [])) ?>
   <label for="t-search" class="sl-hide">Søg</label>
@@ -678,6 +677,9 @@ function lg_page_inventory(array $d): void
       <td><?= lg_badge($r) ?><?php if ($r): ?><br><span class="sl-small"><?= e($r['navn']) ?>, til <?= e(lg_dmy($r['til'])) ?></span><?php endif; ?></td>
       <td class="sl-col-act"><a href="<?= e(lg_url(['side' => 'rediger', 'id' => $e['id']])) ?>">Rediger</a></td>
     </tr>
+    <?php if ($vis === (int)$e['id']): ?>
+    <tr class="sl-detail-row" data-for="<?= (int)$e['id'] ?>"><td colspan="6"><?php lg_detail($d, $e, $active); ?></td></tr>
+    <?php endif; ?>
   <?php endforeach; ?>
   </tbody>
 </table>
@@ -689,18 +691,16 @@ function lg_page_inventory(array $d): void
   <button type="button" class="sl-btn" id="sl-return" disabled>Returner</button>
   <span class="sl-small sl-right"><?= $filtered ? 'Viser ' . count($items) . ' af ' . count($d['enheder']) . ' enheder' : count($items) . ' enheder' ?></span>
 </div>
-</div>
-<aside class="sl-box sl-panel" id="sl-panel" aria-live="polite"<?= $vis ? '' : ' hidden' ?>>
-<?php
-    if ($vis) {
-        $e = $d['enheder'][lg_item_index($d, $vis)];
-        $hist = array_values(array_filter($d['reservationer'], function ($r) use ($vis) { return (int)$r['enhed'] === $vis; }));
-        usort($hist, function ($a, $b) { return strcmp($b['oprettet'], $a['oprettet']); });
-        lg_panel($d, $e, $active[$vis] ?? null, $hist);
-    }
-?>
-</aside>
-</div>
+<?php $start = (int)ceil(time() / 900) * 900; ?>
+<form method="post" class="sl-bulk-form" id="sl-bulk-form" hidden>
+  <?= lg_csrf() ?><input type="hidden" name="handling" value="reserver"><input type="hidden" name="retur" value="">
+  <strong id="sl-bulk-title">Reserver valgte</strong>
+  <label for="b-fra">Fra</label><input type="datetime-local" id="b-fra" name="fra" required value="<?= e(date('Y-m-d\TH:i', $start)) ?>">
+  <label for="b-til">Til</label><input type="datetime-local" id="b-til" name="til" required value="<?= e(date('Y-m-d\TH:i', $start + 86400)) ?>">
+  <label for="b-note">Formål</label><input type="text" id="b-note" name="note" placeholder="Hvad skal det bruges til?">
+  <button type="submit" class="sl-btn sl-btn-main">Reserver</button>
+  <button type="button" class="sl-btn" id="sl-bulk-cancel">Annuller</button>
+</form>
 <form method="post" id="sl-return-form" hidden><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"></form>
 <?php
     lg_end();
@@ -712,90 +712,93 @@ function lg_page_inventory(array $d): void
 
 function lg_page_info(array $d, int $id): void
 {
-    $popup = !empty($_GET['popup']);
     $i = lg_item_index($d, $id);
-    if ($i === null) {
-        if ($popup) { echo '<div class="sl-box-head"><h2>Ikke fundet</h2><button type="button" class="sl-close" data-close aria-label="Luk">×</button></div><div class="sl-box-body"><p>Enheden findes ikke længere.</p></div>'; return; }
-        lg_not_found();
-        return;
-    }
-    $e = $d['enheder'][$i];
-    $cur = lg_active($d)[$id] ?? null;
-    $hist = array_values(array_filter($d['reservationer'], function ($r) use ($id) { return (int)$r['enhed'] === $id; }));
-    usort($hist, function ($a, $b) { return strcmp($b['oprettet'], $a['oprettet']); });
-
-    if ($popup) {
+    if (!empty($_GET['popup'])) {
         header('Cache-Control: no-store');
-        lg_panel($d, $e, $cur, $hist);
+        if ($i === null) { echo '<div class="sl-detail"><p>Enheden findes ikke længere.</p></div>'; return; }
+        lg_detail($d, $d['enheder'][$i], lg_active($d));
         return;
     }
+    if ($i === null) { lg_not_found(); return; }
+    $e = $d['enheder'][$i];
     lg_start($e['navn'], 'inventar');
     lg_back('./', 'Tilbage til inventar');
     lg_title($e['navn']);
-    lg_info_body($d, $e, $cur, $hist, false);
+    lg_detail($d, $e, lg_active($d));
     lg_end();
 }
 
-/** Panelet til højre for listen. */
-function lg_panel(array $d, array $e, ?array $cur, array $hist): void
-{
-    echo '<div class="sl-box-head"><h2>' . e($e['navn']) . '</h2><button type="button" class="sl-close" data-close aria-label="Luk">×</button></div><div class="sl-box-body">';
-    lg_info_body($d, $e, $cur, $hist, true);
-    echo '</div>';
-}
-
-function lg_info_body(array $d, array $e, ?array $cur, array $hist, bool $popup): void
+/** Info om en enhed: oplysninger, reservér/returnér og historik – vises under rækken i listen. */
+function lg_detail(array $d, array $e, array $active): void
 {
     $id = (int)$e['id'];
+    $cur = $active[$id] ?? null;
     $sek = lg_section_of($e['sku'], $d['sektioner']);
-    $shown = $popup ? array_slice($hist, 0, 5) : $hist;
+    $hist = array_values(array_filter($d['reservationer'], function ($r) use ($id) { return (int)$r['enhed'] === $id; }));
+    usort($hist, function ($a, $b) { return strcmp($b['oprettet'], $a['oprettet']); });
+    $retur = lg_current_query();
+    $start = (int)ceil(time() / 900) * 900;
     ?>
-<table class="sl-details">
-  <tr><th>ID</th><td><?= e($e['sku']) ?></td></tr>
-  <tr><th>Placering</th><td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td></tr>
-  <tr><th>Sektion</th><td><?= $sek !== '' ? e($sek) : '-' ?></td></tr>
-  <tr><th>Status</th><td><?= lg_badge($cur) ?></td></tr>
-  <?php if ($e['beskrivelse'] !== ''): ?><tr><th>Beskrivelse</th><td><?= nl2br(e($e['beskrivelse'])) ?></td></tr><?php endif; ?>
-</table>
+<div class="sl-detail">
+  <div class="sl-detail-grid">
+    <div>
+      <h3>Oplysninger</h3>
+      <table class="sl-details">
+        <tr><th>ID</th><td><?= e($e['sku']) ?></td></tr>
+        <tr><th>Navn</th><td><?= e($e['navn']) ?></td></tr>
+        <tr><th>Placering</th><td><?= $e['placering'] !== '' ? e($e['placering']) : '-' ?></td></tr>
+        <tr><th>Sektion</th><td><?= $sek !== '' ? e($sek) : '-' ?></td></tr>
+        <?php if ($e['beskrivelse'] !== ''): ?><tr><th>Beskrivelse</th><td><?= nl2br(e($e['beskrivelse'])) ?></td></tr><?php endif; ?>
+      </table>
+      <div class="sl-detail-links">
+        <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $id])) ?>">Rediger</a> ·
+        <form method="post" data-confirm="Slet “<?= e($e['navn']) ?>”? Al historik for enheden bliver også slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="slet"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="retur" value="<?= e($retur) ?>"><button type="submit" class="sl-link sl-danger">Slet</button></form>
+      </div>
+    </div>
 
-<?php if ($cur): ?>
-<h3>Nuværende reservation</h3>
-<table class="sl-details sl-details-warn">
-  <tr><th>Reserveret af</th><td><?= e($cur['navn']) ?></td></tr>
-  <tr><th>Fra</th><td><?= e(lg_dmy($cur['fra'])) ?></td></tr>
-  <tr><th>Til</th><td><?= e(lg_dmy($cur['til'])) ?><?= lg_overdue($cur) ? ' <span class="sl-st sl-st-bad">(overskredet)</span>' : '' ?></td></tr>
-  <?php if ($cur['note'] !== ''): ?><tr><th>Formål</th><td><?= nl2br(e($cur['note'])) ?></td></tr><?php endif; ?>
-  <tr><th>Reserveret den</th><td><?= e(lg_dmy($cur['oprettet'])) ?></td></tr>
-</table>
-<?php endif; ?>
+    <div>
+      <?php if ($cur): ?>
+      <h3>Reserveret <?= lg_overdue($cur) ? '<span class="sl-st sl-st-bad">(overskredet)</span>' : '' ?></h3>
+      <table class="sl-details sl-details-warn">
+        <tr><th>Af</th><td><?= e($cur['navn']) ?></td></tr>
+        <tr><th>Fra</th><td><?= e(lg_dmy($cur['fra'])) ?></td></tr>
+        <tr><th>Til</th><td><?= e(lg_dmy($cur['til'])) ?></td></tr>
+        <?php if ($cur['note'] !== ''): ?><tr><th>Formål</th><td><?= nl2br(e($cur['note'])) ?></td></tr><?php endif; ?>
+      </table>
+      <form method="post" class="sl-detail-action" data-confirm="Marker “<?= e($e['navn']) ?>” som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><input type="hidden" name="ids[]" value="<?= $id ?>"><input type="hidden" name="retur" value="<?= e($retur) ?>">
+        <button type="submit" class="sl-btn sl-btn-main">Returner</button></form>
+      <?php else: ?>
+      <h3>Reserver</h3>
+      <form method="post">
+        <?= lg_csrf() ?><input type="hidden" name="handling" value="reserver"><input type="hidden" name="ids[]" value="<?= $id ?>"><input type="hidden" name="retur" value="<?= e($retur) ?>">
+        <table class="sl-form sl-form-compact">
+          <tr><th><label for="r-fra-<?= $id ?>">Fra</label></th><td><input type="datetime-local" id="r-fra-<?= $id ?>" name="fra" required value="<?= e(lg_old('fra', date('Y-m-d\TH:i', $start))) ?>"></td></tr>
+          <tr><th><label for="r-til-<?= $id ?>">Til</label></th><td><input type="datetime-local" id="r-til-<?= $id ?>" name="til" required value="<?= e(lg_old('til', date('Y-m-d\TH:i', $start + 86400))) ?>"></td></tr>
+          <tr><th><label for="r-note-<?= $id ?>">Formål</label></th><td><input type="text" id="r-note-<?= $id ?>" name="note" placeholder="Hvad skal det bruges til?" value="<?= e(lg_old('note')) ?>"></td></tr>
+          <tr><th></th><td><button type="submit" class="sl-btn sl-btn-main">Reserver</button></td></tr>
+        </table>
+      </form>
+      <?php endif; ?>
+    </div>
 
-<div class="sl-buttons">
-  <?php if ($cur): ?>
-  <form method="post" data-confirm="Marker “<?= e($e['navn']) ?>” som returneret?"><?= lg_csrf() ?><input type="hidden" name="handling" value="returner"><?php if ($popup): ?><input type="hidden" name="retur" value="<?= e(lg_current_query()) ?>"><?php else: ?><input type="hidden" name="tilbage" value="info"><?php endif; ?><input type="hidden" name="ids[]" value="<?= $id ?>">
-    <button type="submit" class="sl-btn sl-btn-main">Returner</button></form>
-  <?php else: ?>
-  <a href="<?= e(lg_url(['side' => 'reserver', 'ids' => $id])) ?>" class="sl-btn sl-btn-main">Reserver</a>
-  <?php endif; ?>
-  <a href="<?= e(lg_url(['side' => 'rediger', 'id' => $id])) ?>" class="sl-btn">Rediger</a>
-  <form method="post" data-confirm="Slet “<?= e($e['navn']) ?>”? Al historik for enheden bliver også slettet."><?= lg_csrf() ?><input type="hidden" name="handling" value="slet"><input type="hidden" name="id" value="<?= $id ?>"><?php if ($popup): ?><input type="hidden" name="retur" value="<?= e(lg_current_query()) ?>"><?php endif; ?><button type="submit" class="sl-btn sl-btn-danger">Slet</button></form>
+    <div>
+      <h3>Historik</h3>
+      <?php if (!$hist): ?>
+      <p class="sl-small">Ikke reserveret før.</p>
+      <?php else: ?>
+      <table class="sl-table sl-table-tight">
+        <thead><tr><th>Af</th><th>Fra – til</th><th>Status</th></tr></thead>
+        <tbody>
+        <?php foreach (array_slice($hist, 0, 5) as $r): ?>
+          <tr><td><?= e($r['navn']) ?></td><td class="sl-nowrap"><?= e(date('d/m', strtotime($r['fra']))) ?> – <?= e(date('d/m/Y', strtotime($r['til']))) ?></td><td><?= lg_res_status($r) ?></td></tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+      <?php if (count($hist) > 5): ?><p class="sl-small"><a href="<?= e(lg_url(['side' => 'historik', 'search' => $e['sku']])) ?>">Se alle <?= count($hist) ?></a></p><?php endif; ?>
+      <?php endif; ?>
+    </div>
+  </div>
 </div>
-
-<h3>Historik</h3>
-<?php if (!$hist): ?>
-<p class="sl-small">Enheden har ikke været reserveret endnu.</p>
-<?php else: ?>
-<div class="sl-table-wrap">
-<table class="sl-table">
-  <thead><tr><th>Reserveret af</th><th>Fra</th><th>Til</th><th>Formål</th><th>Status</th></tr></thead>
-  <tbody>
-  <?php foreach ($shown as $r): ?>
-    <tr><td><?= e($r['navn']) ?></td><td class="sl-nowrap"><?= e(lg_dmy($r['fra'])) ?></td><td class="sl-nowrap"><?= e(lg_dmy($r['til'])) ?></td><td><?= e($r['note']) ?></td><td><?= lg_res_status($r) ?></td></tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
-</div>
-<?php if (count($hist) > count($shown)): ?><p class="sl-small"><a href="<?= e(lg_url(['side' => 'info', 'id' => $id])) ?>">Se hele historikken (<?= count($hist) ?>)</a></p><?php endif; ?>
-<?php endif; ?>
 <?php
 }
 

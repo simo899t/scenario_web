@@ -59,46 +59,52 @@
     if (e.key === "Escape") document.querySelectorAll("details.sl-multi[open]").forEach(function (d) { d.open = false; });
   });
 
-  /* ---------- Info om en enhed i panelet til højre ---------- */
-  var panel = $("sl-panel"), split = $("sl-split");
+  /* ---------- Info foldes ud under rækken ---------- */
+  var table = $("sl-inventar");
   var setVis = function (id) {
     var p = new URLSearchParams(location.search);
     if (id) p.set("vis", id); else p.delete("vis");
     history.replaceState(null, "", p.toString() ? "?" + p.toString() : location.pathname);
-    // Formularer i panelet skal lande samme sted bagefter
-    if (panel) panel.querySelectorAll('input[name="retur"]').forEach(function (i) { i.value = p.toString(); });
+    // Formularer i den udfoldede række skal lande samme sted bagefter
+    document.querySelectorAll(".sl-detail-row input[name=retur]").forEach(function (i) { i.value = p.toString(); });
     document.querySelectorAll("form.sl-toolbar input[name=vis]").forEach(function (i) { i.value = id || ""; });
   };
-  var markCurrent = function (id) {
-    document.querySelectorAll("#sl-inventar tbody tr[data-id]").forEach(function (r) {
-      r.classList.toggle("sl-current", r.getAttribute("data-id") === String(id));
-    });
-  };
-  function showInfo(id, href) {
-    if (!panel) { location.href = href; return; }
+  function closeDetail() {
+    if (!table) return;
+    table.querySelectorAll("tr.sl-detail-row").forEach(function (r) { r.remove(); });
+    table.querySelectorAll("tr.sl-current").forEach(function (r) { r.classList.remove("sl-current"); });
+    setVis(null);
+  }
+  function toggleDetail(row) {
+    var wasOpen = row.classList.contains("sl-current");
+    closeDetail();
+    if (wasOpen) return;
+    var id = row.getAttribute("data-id");
     fetch("?side=info&id=" + encodeURIComponent(id) + "&popup=1", { credentials: "same-origin" })
       .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
       .then(function (html) {
-        panel.innerHTML = html;
-        panel.hidden = false;
-        split.classList.add("has-panel");
-        markCurrent(id);
+        var tr = document.createElement("tr");
+        tr.className = "sl-detail-row";
+        tr.setAttribute("data-for", id);
+        var td = document.createElement("td");
+        td.colSpan = row.cells.length;
+        td.innerHTML = html;
+        tr.appendChild(td);
+        row.after(tr);
+        row.classList.add("sl-current");
         setVis(id);
-        panel.scrollTop = 0;
       })
-      .catch(function () { location.href = href; });
+      .catch(function () { location.href = row.getAttribute("data-href"); });
   }
-  function closeInfo() {
-    if (!panel) return;
-    panel.hidden = true;
-    panel.innerHTML = "";
-    split.classList.remove("has-panel");
-    markCurrent(null);
-    setVis(null);
+  if (table) {
+    // Åbnet fra en adresse (fx efter en reservation): vis rækken
+    var current = table.querySelector("tr.sl-current");
+    if (current) current.scrollIntoView({ block: "center" });
   }
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel && !panel.hidden) closeInfo(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && table && table.querySelector("tr.sl-detail-row") && !document.querySelector("details.sl-multi[open]")) closeDetail();
+  });
   document.addEventListener("click", function (e) {
-    if (e.target.closest("[data-close]")) { closeInfo(); return; }
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     var cell = e.target.closest("#sl-inventar td.sl-col-check");
     if (cell && e.target.tagName !== "INPUT") {
@@ -113,7 +119,7 @@
     if (link && !link.hasAttribute("data-popup")) return; // fx "Rediger"
     if (!link && (e.target.closest("button, input, label") || getSelection().toString())) return;
     e.preventDefault();
-    showInfo(row.getAttribute("data-id"), row.getAttribute("data-href"));
+    toggleDetail(row);
   });
 
   /* ---------- Vælg flere og reserver/returner ---------- */
@@ -126,6 +132,8 @@
       var free = sel.filter(function (b) { return b.dataset.free === "1"; }).length;
       $("sl-count").textContent = sel.length;
       $("sl-reserve").disabled = free === 0;
+      if (!free && $("sl-bulk-form")) $("sl-bulk-form").hidden = true;
+      if (free && $("sl-bulk-title")) $("sl-bulk-title").textContent = free === 1 ? "Reserver 1 enhed" : "Reserver " + free + " enheder";
       $("sl-reserve").textContent = free ? "Reserver (" + free + ")" : "Reserver";
       $("sl-return").disabled = sel.length - free === 0;
       $("sl-return").textContent = sel.length - free ? "Returner (" + (sel.length - free) + ")" : "Returner";
@@ -137,9 +145,27 @@
       picks.forEach(function (b) { b.checked = all.checked; });
       update();
     });
+    var bulkForm = $("sl-bulk-form");
+    var freeIds = function () { return chosen().filter(function (b) { return b.dataset.free === "1"; }).map(function (b) { return b.value; }); };
     $("sl-reserve").addEventListener("click", function () {
-      var ids = chosen().filter(function (b) { return b.dataset.free === "1"; }).map(function (b) { return b.value; });
-      if (ids.length) location.href = "?side=reserver&ids=" + ids.join(",");
+      var n = freeIds().length;
+      if (!n) return;
+      $("sl-bulk-title").textContent = n === 1 ? "Reserver 1 enhed" : "Reserver " + n + " enheder";
+      $("b-note").required = n > 1; // ved flere enheder skal man skrive formålet
+      bulkForm.hidden = false;
+      $("b-note").focus();
+    });
+    $("sl-bulk-cancel").addEventListener("click", function () { bulkForm.hidden = true; });
+    bulkForm.addEventListener("submit", function () {
+      bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function (i) { i.remove(); });
+      freeIds().forEach(function (id) {
+        var i = document.createElement("input");
+        i.type = "hidden"; i.name = "ids[]"; i.value = id;
+        bulkForm.appendChild(i);
+      });
+      var p = new URLSearchParams(location.search);
+      p.delete("vis");
+      bulkForm.querySelector("input[name=retur]").value = p.toString();
     });
     $("sl-return").addEventListener("click", function () {
       var ids = chosen().filter(function (b) { return b.dataset.free === "0"; }).map(function (b) { return b.value; });

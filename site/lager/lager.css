@@ -125,15 +125,15 @@ textarea { width: 100%; max-width: 420px; }
 .sl-table th { background: var(--head); white-space: nowrap; }
 .sl-table th a { color: var(--text); text-decoration: none; }
 .sl-table th a:hover { text-decoration: underline; }
-.sl-table tbody tr:nth-child(even) { background: var(--zebra); }
+.sl-table > tbody > tr:nth-child(even) { background: var(--zebra); }
 /* Rækkefarver: reserveret = gul, valgt = blå (alle rækker, ikke kun hver anden) */
-.sl-table tbody tr.sl-reserved { background: var(--reserved); }
-#sl-inventar tbody tr:hover { background: var(--row-hover); }
-#sl-inventar tbody tr.sl-reserved:hover { background: var(--reserved-hover); }
-#sl-inventar tbody tr.sl-picked, #sl-inventar tbody tr.sl-picked:hover { background: var(--picked); }
-#sl-inventar tbody tr.sl-current td:first-child { box-shadow: inset 4px 0 0 var(--current-bar); }
-#sl-inventar tbody tr.sl-current:not(.sl-picked) { background: var(--current); }
-#sl-inventar tbody tr[data-href] { cursor: pointer; }
+.sl-table > tbody > tr.sl-reserved { background: var(--reserved); }
+#sl-inventar > tbody > tr:hover { background: var(--row-hover); }
+#sl-inventar > tbody > tr.sl-reserved:hover { background: var(--reserved-hover); }
+#sl-inventar > tbody > tr.sl-picked, #sl-inventar > tbody > tr.sl-picked:hover { background: var(--picked); }
+#sl-inventar > tbody > tr.sl-current > td:first-child { box-shadow: inset 4px 0 0 var(--current-bar); }
+#sl-inventar > tbody > tr.sl-current:not(.sl-picked) { background: var(--current); }
+#sl-inventar > tbody > tr[data-href] { cursor: pointer; }
 .sl-table-small { width: auto; min-width: 320px; }
 .sl-col-check { width: 30px; text-align: center !important; }
 .sl-col-act { width: 1%; white-space: nowrap; }
@@ -155,7 +155,7 @@ textarea { width: 100%; max-width: 420px; }
 .sl-details th, .sl-details td { padding: 5px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
 .sl-details th { width: 140px; background: var(--head); }
 .sl-details-warn td { background: var(--reserved); }
-.sl-form th, .sl-form td { padding: 5px 10px 5px 0; text-align: left; vertical-align: top; }
+.sl-form th, .sl-form td { padding: 5px 10px 5px 0; border: 0; background: none; text-align: left; vertical-align: top; }
 .sl-form th { width: 160px; padding-top: 9px; font-weight: bold; }
 .sl-form input[type="text"], .sl-form input[type="password"], .sl-form select { width: 280px; max-width: 100%; }
 .sl-form input.sl-short { width: 120px; }
@@ -180,15 +180,27 @@ textarea { width: 100%; max-width: 420px; }
 .sl-form-compact th { width: 140px; white-space: nowrap; }
 .sl-form-compact input[type="text"], .sl-form-compact input[type="password"] { width: 100%; }
 
-/* Inventar: listen til venstre, info-panel til højre */
-.sl-split { display: flex; gap: 16px; align-items: flex-start; }
-.sl-split-main { flex: 1; min-width: 0; }
-.sl-panel { position: sticky; top: 12px; flex: none; width: 380px; max-height: calc(100vh - 24px); overflow: auto; }
-.sl-panel .sl-box-head { position: sticky; top: 0; z-index: 1; }
-.sl-panel .sl-details { width: 100%; min-width: 0; }
-.sl-panel .sl-details th { width: 105px; }
-.sl-panel h3 { margin: 14px 0 6px; }
-.sl-panel .sl-buttons { margin: 10px 0 0; }
+/* Info foldes ud under rækken */
+#sl-inventar > tbody > tr.sl-detail-row, #sl-inventar > tbody > tr.sl-detail-row:hover { background: var(--bg); cursor: default; }
+#sl-inventar > tbody > tr.sl-detail-row > td { padding: 0; }
+.sl-detail { padding: 12px 14px 14px; border-left: 4px solid var(--current-bar); background: var(--bg); }
+.sl-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px 24px; }
+.sl-detail h3 { margin: 0 0 6px; font-size: 14px; }
+.sl-detail .sl-details { width: 100%; min-width: 0; }
+.sl-detail .sl-details th { width: 90px; }
+.sl-detail .sl-form-compact th { width: 60px; padding-top: 7px; }
+.sl-detail .sl-form-compact td, .sl-detail .sl-form-compact th { padding-bottom: 4px; }
+.sl-detail input[type="datetime-local"], .sl-detail .sl-form-compact input[type="text"] { width: 100%; }
+.sl-detail-links { margin-top: 8px; font-size: 14px; }
+.sl-detail-links form { display: inline; }
+.sl-detail-action { margin-top: 8px; }
+.sl-table-tight { font-size: 13px; }
+.sl-table-tight th, .sl-table-tight td { padding: 3px 6px; }
+
+/* "Med valgte": lille formular under listen i stedet for en ny side */
+.sl-bulk-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px; border: 1px solid var(--line); border-top: 0; background: var(--reserved); font-size: 14px; }
+.sl-bulk-form label { margin-left: 6px; }
+.sl-bulk-form input[type="text"] { flex: 1; min-width: 160px; }
 
 /* Login */
 .sl-login { width: 100%; max-width: 420px; margin: 60px auto; padding: 16px 20px; border: 1px solid var(--line-strong); background: var(--login); }
@@ -200,8 +212,7 @@ textarea { width: 100%; max-width: 420px; }
 
 /* Mobil og smal skærm: panelet glider op fra bunden */
 @media (max-width: 900px) {
-  .sl-grid { grid-template-columns: minmax(0, 1fr); }
-  .sl-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 20; width: auto; max-height: 70vh; border-width: 2px 0 0; box-shadow: 0 -4px 16px var(--shadow); }
+  .sl-grid, .sl-detail-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .sl-user { margin-left: 0; width: 100%; }
@@ -212,4 +223,6 @@ textarea { width: 100%; max-width: 420px; }
   .sl-form td { padding: 0 0 4px; }
   .sl-form input[type="text"], .sl-form input[type="password"], .sl-form select, textarea { width: 100%; max-width: none; }
   .sl-toolbar input[type="text"] { max-width: none; }
+  #sl-inventar th:nth-child(4), #sl-inventar tr[data-id] > td:nth-child(4),
+  #sl-inventar th:nth-child(6), #sl-inventar tr[data-id] > td:nth-child(6) { display: none; }
 }
