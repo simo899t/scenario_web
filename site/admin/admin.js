@@ -592,36 +592,101 @@
     });
   }
 
-  /** Vælg et billede, der allerede ligger på serveren. */
-  function pickImage(kind) {
+  /**
+   * Vælg billeder, der allerede ligger på serveren.
+   * opt.event: forestillingen, der redigeres (giver fanen "Denne forestilling")
+   * opt.multiple: vælg flere på én gang (svarer med en liste)
+   */
+  function pickImage(kind, opt = {}) {
+    const multiple = !!opt.multiple;
+    const ev = opt.event || null;
     return modal({
-      title: "Vælg et billede",
+      title: multiple ? "Vælg billeder" : "Vælg et billede",
       wide: true,
       body: (close) => {
+        let filter = null;
+        const chosen = new Set();
+        const tabs = h("div", { class: "chips" });
         const grid = h("div", { class: "picker-grid" }, h("div", { class: "loading" }, h("div", { class: "spinner" }), "Henter billeder…"));
         const fileInp = h("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/gif", hidden: true });
-        const upBtn = h("button", { type: "button", class: "btn btn-primary btn-sm", onclick: () => fileInp.click() }, icon("upload"), "Upload nyt billede");
+        const upBtn = h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: () => fileInp.click() }, icon("upload"), h("span", { text: "Upload nyt" }));
+        const addBtn = multiple ? h("button", { type: "button", class: "btn btn-primary", disabled: true, onclick: () => close([...chosen]) }, icon("check"), h("span", { text: "Tilføj valgte" })) : null;
+        const updateAdd = () => {
+          if (!addBtn) return;
+          addBtn.disabled = !chosen.size;
+          addBtn.lastChild.textContent = chosen.size ? `Tilføj ${chosen.size} ${chosen.size === 1 ? "billede" : "billeder"}` : "Tilføj valgte";
+        };
         fileInp.addEventListener("change", async () => {
           const f = fileInp.files[0];
+          fileInp.value = "";
           if (!f) return;
+          let ready = null;
+          try { ready = await cropImage(f, cropOpts(kind)); } catch (err) { handleError(err); return; }
+          if (!ready) return;
           upBtn.disabled = true;
           upBtn.lastChild.textContent = "Uploader…";
-          try { close((await uploadImage(f, kind)).sti); } catch (err) { handleError(err); upBtn.disabled = false; upBtn.lastChild.textContent = "Upload nyt billede"; }
+          try {
+            const sti = (await uploadImage(ready, kind)).sti;
+            close(multiple ? [sti] : sti);
+          } catch (err) {
+            handleError(err);
+            upBtn.disabled = false;
+            upBtn.lastChild.textContent = "Upload nyt";
+          }
         });
+        const lists = () => {
+          const all = S.billeder;
+          const own = ev ? [...new Set([ev.billede, ...ev.galleri].filter(Boolean))] : [];
+          return {
+            ubrugte: all.filter((b) => b.mappe === "uploads" && !usages(b.sti).length),
+            forestilling: own.map((p) => all.find((b) => b.sti === p) || { sti: p }),
+            alle: all,
+          };
+        };
+        const EMPTY = {
+          ubrugte: "Der er ingen ubrugte billeder. Upload et nyt, eller se under “Alle”.",
+          forestilling: "Forestillingen har ingen billeder endnu.",
+          alle: "Der er ingen billeder endnu. Upload et nyt.",
+        };
+        const draw = () => {
+          const L = lists();
+          if (!filter) filter = L.ubrugte.length ? "ubrugte" : L.forestilling.length ? "forestilling" : "alle";
+          const defs = [["ubrugte", "Ikke i brug"], ev && ["forestilling", "Denne forestilling"], ["alle", "Alle"]].filter(Boolean);
+          tabs.replaceChildren(...defs.map(([id, label]) =>
+            h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), "aria-pressed": String(filter === id), onclick: () => { filter = id; draw(); } }, `${label} (${L[id].length})`)));
+          const list = L[filter];
+          grid.replaceChildren();
+          if (!list.length) grid.append(h("p", { class: "muted", text: EMPTY[filter] }));
+          for (const b of list) {
+            const item = h("button", {
+              type: "button", class: "picker-item" + (chosen.has(b.sti) ? " on" : ""), title: fileName(b.sti),
+              "aria-pressed": multiple ? String(chosen.has(b.sti)) : null,
+              onclick: () => {
+                if (!multiple) return close(b.sti);
+                if (chosen.has(b.sti)) chosen.delete(b.sti); else chosen.add(b.sti);
+                item.classList.toggle("on", chosen.has(b.sti));
+                item.setAttribute("aria-pressed", String(chosen.has(b.sti)));
+                updateAdd();
+              },
+            }, h("img", { src: imgSrc(b.sti), alt: "", loading: "lazy" }), multiple && h("span", { class: "picker-check" }, icon("check")));
+            grid.append(item);
+          }
+          updateAdd();
+        };
         (async () => {
           try {
-            if (!S.billeder) S.billeder = (await api("billeder")).billeder;
-            grid.replaceChildren();
-            if (!S.billeder.length) grid.append(h("p", { class: "muted", text: "Der er ingen billeder endnu. Upload et nyt." }));
-            for (const b of S.billeder) {
-              grid.append(h("button", { type: "button", class: "picker-item", title: b.sti.split("/").pop(), onclick: () => close(b.sti) },
-                h("img", { src: imgSrc(b.sti), alt: "", loading: "lazy" })));
-            }
+            S.billeder = (await api("billeder")).billeder;
+            draw();
           } catch (err) {
             grid.replaceChildren(h("p", { class: "muted", text: err.message }));
           }
         })();
-        return h("div", { class: "stack" }, h("div", { class: "picker-bar" }, h("p", { class: "muted", text: "Klik på et billede for at bruge det." }), upBtn, fileInp), grid);
+        return h("div", { class: "stack" },
+          h("div", { class: "picker-bar" }, tabs, upBtn, fileInp),
+          h("p", { class: "help", text: multiple ? "Klik på billederne for at vælge dem, og tryk så “Tilføj”." : "Klik på et billede for at bruge det." }),
+          grid,
+          multiple && h("div", { class: "modal-actions flush picker-actions" },
+            h("button", { type: "button", class: "btn btn-secondary", onclick: () => close(null) }, "Annuller"), addBtn));
       },
     });
   }
@@ -771,7 +836,7 @@
         : h("button", { type: "button", class: "image-empty", onclick: () => fileInp.click() }, icon("image"),
             h("span", { text: o.compact ? "Upload logo" : "Klik for at uploade – eller træk et billede herind" }));
       const choose = async () => {
-        const p = await pickImage(kind);
+        const p = await pickImage(kind, { event: o.event });
         if (p) { obj[key] = p; changed(); if (o.onChange) o.onChange(p); render(); }
       };
       box.append(
@@ -811,7 +876,18 @@
       dropzone(grid, addFiles);
       wrap.replaceChildren(
         h("div", { class: "label-row" }, h("span", { class: "label", text: o.label }),
-          h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { const p = await pickImage("billede"); if (p) { arr.push(p); changed(); render(); } } }, icon("image"), "Vælg fra billeder")),
+          h("button", {
+            type: "button", class: "btn btn-ghost btn-sm",
+            onclick: async () => {
+              const ps = await pickImage("billede", { event: o.event, multiple: true });
+              const nye = (ps || []).filter((p) => !arr.includes(p));
+              if (!nye.length) return;
+              arr.push(...nye);
+              changed();
+              render();
+              toast(nye.length === 1 ? "Billedet er tilføjet." : `${nye.length} billeder er tilføjet.`);
+            },
+          }, icon("image"), "Vælg fra billeder")),
         grid, status, o.help && h("p", { class: "help", text: o.help }));
     };
     async function recrop(i) {
@@ -1108,8 +1184,8 @@
         textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side." }),
         textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit." })),
       card("Billeder", null,
-        imageField(ev, "billede", { label: "Hovedbillede", help: "Vises på forsiden, i oversigten og øverst på forestillingens side." }),
-        galleryField(ev.galleri, { label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
+        imageField(ev, "billede", { event: ev, label: "Hovedbillede", help: "Vises på forsiden, i oversigten og øverst på forestillingens side." }),
+        galleryField(ev.galleri, { event: ev, label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
       card("Medvirkende og hold", null,
         rowsField(ev.hold, {
           cols: [{ key: "rolle", label: "Rolle eller funktion", placeholder: "fx Instruktør" }, { key: "navn", label: "Navn", placeholder: "fx Anna Hansen" }],
