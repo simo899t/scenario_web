@@ -33,6 +33,32 @@
     s.addEventListener("change", function () { s.form.submit(); });
   });
 
+  /* ---------- Sektion: dropdown med flueben ---------- */
+  document.querySelectorAll("details.sl-multi").forEach(function (d) {
+    var boxes = d.querySelectorAll("input[type=checkbox]");
+    var state = function () { return Array.prototype.map.call(boxes, function (b) { return b.checked ? 1 : 0; }).join(""); };
+    var start = state();
+    var label = function () {
+      var sel = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).map(function (b) { return b.value; });
+      d.querySelector("summary").textContent = sel.length ? sel.join(", ") : "Alle";
+    };
+    d.addEventListener("change", label);
+    d.querySelector("[data-multi-clear]").addEventListener("click", function () {
+      boxes.forEach(function (b) { b.checked = false; });
+      label();
+    });
+    // Når listen lukkes, opdateres inventaret, hvis man har ændret noget
+    d.addEventListener("toggle", function () {
+      if (!d.open && state() !== start) d.closest("form").submit();
+    });
+  });
+  document.addEventListener("click", function (e) {
+    document.querySelectorAll("details.sl-multi[open]").forEach(function (d) { if (!d.contains(e.target)) d.open = false; });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") document.querySelectorAll("details.sl-multi[open]").forEach(function (d) { d.open = false; });
+  });
+
   /* ---------- Info om en enhed i panelet til højre ---------- */
   var panel = $("sl-panel"), split = $("sl-split");
   var setVis = function (id) {

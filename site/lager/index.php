@@ -56,19 +56,29 @@ function lg_ids($v): array
     return array_values(array_unique(array_filter(array_map('intval', $ids), function ($i) { return $i > 0; })));
 }
 
+/** Rydder en adresses filtre op: kun kendte felter; "sektion" må være en liste. */
+function lg_clean_query(array $q): array
+{
+    $out = [];
+    foreach (['search', 'status', 'sort', 'dir', 'vis'] as $k) {
+        if (isset($q[$k]) && is_string($q[$k]) && $q[$k] !== '') $out[$k] = $q[$k];
+    }
+    $sek = array_values(array_filter((array)($q['sektion'] ?? []), function ($v) { return is_string($v) && $v !== ''; }));
+    if ($sek) $out['sektion'] = $sek;
+    return $out;
+}
+
 /** Listens filtre m.m. fra et skjult felt "retur", så man lander samme sted efter en handling. */
 function lg_retur(): array
 {
     parse_str((string)($_POST['retur'] ?? ''), $q);
-    $q = array_intersect_key($q, array_flip(['search', 'status', 'sektion', 'sort', 'dir', 'vis']));
-    return array_filter($q, function ($v) { return is_string($v) && $v !== ''; });
+    return lg_clean_query($q);
 }
 
 /** De filtre, der gælder for listen lige nu (bruges i panelets formularer). */
 function lg_current_query(): string
 {
-    $q = array_intersect_key($_GET, array_flip(['search', 'status', 'sektion', 'sort', 'dir', 'vis']));
-    return http_build_query(array_filter($q, function ($v) { return is_string($v) && $v !== ''; }));
+    return http_build_query(lg_clean_query($_GET));
 }
 
 function lg_status(?array $res): array
@@ -572,7 +582,7 @@ function lg_page_inventory(array $d): void
 {
     $search = sc_line($_GET['search'] ?? '', 200);
     $status = in_array($_GET['status'] ?? '', ['available', 'reserved', 'overdue'], true) ? $_GET['status'] : '';
-    $sek = in_array($_GET['sektion'] ?? '', $d['sektioner'], true) ? $_GET['sektion'] : '';
+    $secs = array_values(array_intersect((array)($_GET['sektion'] ?? []), $d['sektioner']));
     $sort = in_array($_GET['sort'] ?? '', ['id', 'name', 'location'], true) ? $_GET['sort'] : 'id';
     $dir = strtolower((string)($_GET['dir'] ?? '')) === 'desc' ? 'desc' : 'asc';
     $active = lg_active($d);
@@ -581,12 +591,16 @@ function lg_page_inventory(array $d): void
     $nOver = count(array_filter($active, 'lg_overdue'));
 
     $terms = array_filter(array_map('trim', explode(',', sc_lower($search))), 'strlen');
-    $items = array_filter($d['enheder'], function ($e) use ($terms, $status, $sek, $active) {
+    $items = array_filter($d['enheder'], function ($e) use ($terms, $status, $secs, $active) {
         $r = $active[(int)$e['id']] ?? null;
         if ($status === 'available' && $r) return false;
         if ($status === 'reserved' && !$r) return false;
         if ($status === 'overdue' && !($r && lg_overdue($r))) return false;
-        if ($sek !== '' && stripos($e['sku'], $sek . '-') !== 0) return false;
+        if ($secs) {
+            $inSection = false;
+            foreach ($secs as $s) if (stripos($e['sku'], $s . '-') === 0) $inSection = true;
+            if (!$inSection) return false;
+        }
         if ($terms) {
             $hay = sc_lower($e['navn'] . ' ' . $e['sku'] . ' ' . $e['placering']);
             foreach ($terms as $t) if (strpos($hay, $t) !== false) return true;
@@ -600,13 +614,13 @@ function lg_page_inventory(array $d): void
         return $dir === 'desc' ? -$c : $c;
     });
 
-    $state = array_filter(['search' => $search, 'status' => $status, 'sektion' => $sek, 'sort' => $sort !== 'id' ? $sort : '', 'dir' => $dir !== 'asc' ? $dir : '', 'vis' => (string)(int)($_GET['vis'] ?? 0)], function ($v) { return $v !== '' && $v !== '0'; });
+    $state = array_filter(['search' => $search, 'status' => $status, 'sektion' => $secs, 'sort' => $sort !== 'id' ? $sort : '', 'dir' => $dir !== 'asc' ? $dir : '', 'vis' => (string)(int)($_GET['vis'] ?? 0)], function ($v) { return $v !== '' && $v !== '0' && $v !== []; });
     $th = function (string $label, string $f) use ($state, $sort, $dir) {
         $on = $sort === $f;
         $q = array_merge($state, ['sort' => $f, 'dir' => $on && $dir === 'asc' ? 'desc' : 'asc']);
         return '<th><a href="' . e(lg_url($q)) . '">' . e($label) . ($on ? ($dir === 'asc' ? ' ▲' : ' ▼') : '') . '</a></th>';
     };
-    $filtered = $search !== '' || $status !== '' || $sek !== '';
+    $filtered = $search !== '' || $status !== '' || $secs;
     $vis = (int)($_GET['vis'] ?? 0);
     if ($vis && lg_item_index($d, $vis) === null) $vis = 0;
 
@@ -627,11 +641,16 @@ function lg_page_inventory(array $d): void
     <option value="reserved"<?= $status === 'reserved' ? ' selected' : '' ?>>Reserveret</option>
     <option value="overdue"<?= $status === 'overdue' ? ' selected' : '' ?>>Overskredet</option>
   </select>
-  <label for="t-sek">Sektion</label>
-  <select id="t-sek" name="sektion">
-    <option value="">Alle</option>
-    <?php foreach ($d['sektioner'] as $s): ?><option value="<?= e($s) ?>"<?= $sek === $s ? ' selected' : '' ?>><?= e($s) ?></option><?php endforeach; ?>
-  </select>
+  <span>Sektion</span>
+  <details class="sl-multi">
+    <summary><?= $secs ? e(implode(', ', $secs)) : 'Alle' ?></summary>
+    <div class="sl-multi-list">
+      <?php foreach ($d['sektioner'] as $s): ?>
+      <label><input type="checkbox" name="sektion[]" value="<?= e($s) ?>"<?= in_array($s, $secs, true) ? ' checked' : '' ?>> <?= e($s) ?></label>
+      <?php endforeach; ?>
+      <div class="sl-multi-foot"><button type="button" class="sl-link" data-multi-clear>Ryd</button><button type="submit" class="sl-btn sl-btn-sm">Vis</button></div>
+    </div>
+  </details>
   <button type="submit" class="sl-btn">Søg</button>
   <?php if ($filtered): ?><a href="./" class="sl-btn">Ryd</a><?php endif; ?>
 </form>
