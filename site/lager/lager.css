@@ -1,64 +1,104 @@
-/* Scenario Lager – enkelt og klassisk. Samme opbygning på alle sider. */
+/* Scenario Lager – enkelt og klassisk. Samme opbygning på alle sider.
+   Alle farver står her øverst – en lys og en mørk udgave. */
+
+:root {
+  color-scheme: light;
+  --bg: #fff; --text: #222; --muted: #666; --link: #0645ad; --logo-o: #c00;
+  --line: #ccc; --line-strong: #bbb; --line-soft: #eee; --field-line: #999;
+  --bar: #eee; --head: #eee; --zebra: #fafafa; --toolbar: #f6f6f6; --login: #fafafa;
+  --btn: #f4f4f4; --btn-hover: #e4e4e4; --field: #fff;
+  --ok: #2a7a2a; --warn: #b36b00; --bad: #c00; --danger: #b00; --danger-line: #c88;
+  --ok-bg: #eaf6ea; --ok-line: #8bc48b; --bad-bg: #fdecec; --bad-line: #e09a9a;
+  --reserved: #fff7e0; --reserved-hover: #fcefc9;
+  --row-hover: #eef3fb; --picked: #cfe0fb; --current: #e4ecfa; --current-bar: #1a56c4;
+  --shadow: rgba(0, 0, 0, .2);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1b1b1d; --text: #e4e4e4; --muted: #a3a3a3; --link: #8ab4f8; --logo-o: #ff5a5a;
+  --line: #3d3d42; --line-strong: #4a4a50; --line-soft: #2e2e33; --field-line: #66666d;
+  --bar: #26262a; --head: #2a2a2f; --zebra: #202023; --toolbar: #232327; --login: #232327;
+  --btn: #2f2f35; --btn-hover: #3b3b42; --field: #141416;
+  --ok: #6fcf7c; --warn: #f0b450; --bad: #ff7b72; --danger: #ff7b72; --danger-line: #8a4040;
+  --ok-bg: #1d3320; --ok-line: #3f7a46; --bad-bg: #3a1e1e; --bad-line: #8a4040;
+  --reserved: #3a3220; --reserved-hover: #453b26;
+  --row-hover: #2a2e36; --picked: #23395e; --current: #263247; --current-bar: #6ea0ff;
+  --shadow: rgba(0, 0, 0, .6);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1b1b1d; --text: #e4e4e4; --muted: #a3a3a3; --link: #8ab4f8; --logo-o: #ff5a5a;
+    --line: #3d3d42; --line-strong: #4a4a50; --line-soft: #2e2e33; --field-line: #66666d;
+    --bar: #26262a; --head: #2a2a2f; --zebra: #202023; --toolbar: #232327; --login: #232327;
+    --btn: #2f2f35; --btn-hover: #3b3b42; --field: #141416;
+    --ok: #6fcf7c; --warn: #f0b450; --bad: #ff7b72; --danger: #ff7b72; --danger-line: #8a4040;
+    --ok-bg: #1d3320; --ok-line: #3f7a46; --bad-bg: #3a1e1e; --bad-line: #8a4040;
+    --reserved: #3a3220; --reserved-hover: #453b26;
+    --row-hover: #2a2e36; --picked: #23395e; --current: #263247; --current-bar: #6ea0ff;
+    --shadow: rgba(0, 0, 0, .6);
+  }
+}
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-body { background: #fff; color: #222; font: 15px/1.45 Arial, Helvetica, sans-serif; }
-a { color: #0645ad; }
+body { background: var(--bg); color: var(--text); font: 15px/1.45 Arial, Helvetica, sans-serif; }
+a { color: var(--link); }
 [hidden] { display: none !important; }
 h1 { margin: 0; font-size: 22px; }
-h2 { margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #ccc; font-size: 17px; }
+h2 { margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); font-size: 17px; }
 h3 { margin: 18px 0 6px; font-size: 15px; }
 p { margin: 0 0 8px; }
-.red-o { color: #c00; }
-.sl-small { font-size: 13px; color: #666; }
+.red-o { color: var(--logo-o); }
+.sl-small { font-size: 13px; color: var(--muted); }
 .sl-nowrap { white-space: nowrap; }
 .sl-hide { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* Én fast bredde til alt indhold */
-.sl-wrap { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 16px; }
+.sl-wrap { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 
 /* Top */
-.sl-top { background: #eee; border-bottom: 1px solid #bbb; }
+.sl-top { background: var(--bar); border-bottom: 1px solid var(--line-strong); }
 .sl-top-inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
-.sl-brand { color: #222; font-size: 18px; font-weight: bold; text-decoration: none; }
+.sl-brand { color: var(--text); font-size: 18px; font-weight: bold; text-decoration: none; }
 .sl-nav { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; }
-.sl-nav a.active { color: #222; font-weight: bold; text-decoration: none; }
-.sl-user { margin-left: auto; font-size: 13px; color: #555; }
+.sl-nav a.active { color: var(--text); font-weight: bold; text-decoration: none; }
+.sl-user { margin-left: auto; font-size: 13px; color: var(--muted); }
 .sl-user form, .sl-buttons form, .sl-table td form { display: inline; margin: 0; }
-.sl-link { padding: 0; border: 0; background: none; color: #0645ad; font: inherit; text-decoration: underline; cursor: pointer; }
-.sl-danger { color: #b00; }
+.sl-link { padding: 0; border: 0; background: none; color: var(--link); font: inherit; text-decoration: underline; cursor: pointer; }
+.sl-danger { color: var(--danger); }
 
 .sl-main { padding-top: 16px; padding-bottom: 40px; }
 
 /* Beskeder */
 .sl-alert { margin-bottom: 14px; padding: 8px 12px; border: 1px solid; }
-.sl-alert-success { background: #eaf6ea; border-color: #8bc48b; }
-.sl-alert-danger { background: #fdecec; border-color: #e09a9a; }
-.sl-creds { margin: 8px 0; padding: 8px; border: 1px solid #ccc; background: #fff; white-space: pre-wrap; font: 13px/1.4 Consolas, Menlo, monospace; }
+.sl-alert-success { background: var(--ok-bg); border-color: var(--ok-line); }
+.sl-alert-danger { background: var(--bad-bg); border-color: var(--bad-line); }
+.sl-creds { margin: 8px 0; padding: 8px; border: 1px solid var(--line); background: var(--field); white-space: pre-wrap; font: 13px/1.4 Consolas, Menlo, monospace; }
 
 /* Titel: overskrift til venstre, knap til højre */
 .sl-back { margin: 0 0 6px; font-size: 14px; }
 .sl-titlebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 4px; }
 .sl-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sl-sub { margin-bottom: 12px; font-size: 14px; color: #555; }
+.sl-sub { margin-bottom: 12px; font-size: 14px; color: var(--muted); }
 .sl-titlebar + :not(.sl-sub) { margin-top: 12px; }
 
 /* Knapper */
-.sl-btn { display: inline-block; padding: 4px 12px; border: 1px solid #999; border-radius: 3px; background: #f4f4f4; color: #222; font: inherit; font-size: 14px; line-height: 1.4; text-decoration: none; white-space: nowrap; cursor: pointer; }
-.sl-btn:hover { background: #e4e4e4; }
+.sl-btn { display: inline-block; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 3px; background: var(--btn); color: var(--text); font: inherit; font-size: 14px; line-height: 1.4; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.sl-btn:hover { background: var(--btn-hover); }
 .sl-btn:disabled { opacity: .5; cursor: default; }
 .sl-btn-main { font-weight: bold; }
-.sl-btn-danger { color: #b00; border-color: #c88; }
+.sl-btn-danger { color: var(--danger); border-color: var(--danger-line); }
 .sl-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 
 /* Felter */
 input[type="text"], input[type="password"], input[type="datetime-local"], input[type="file"], select, textarea {
-  padding: 4px 6px; border: 1px solid #999; border-radius: 2px; background: #fff; color: #222; font: inherit; font-size: 14px;
+  padding: 4px 6px; border: 1px solid var(--field-line); border-radius: 2px; background: var(--field); color: var(--text); font: inherit; font-size: 14px;
 }
 textarea { width: 100%; max-width: 420px; }
 
 /* Filterbjælke lige over tabellen */
-.sl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; padding: 6px 8px; border: 1px solid #ccc; background: #f6f6f6; font-size: 14px; }
+.sl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 8px; padding: 6px 8px; border: 1px solid var(--line); background: var(--toolbar); font-size: 14px; }
 .sl-toolbar input[type="text"] { flex: 1; min-width: 160px; max-width: 320px; }
 .sl-toolbar label { margin-left: 6px; }
 .sl-toolbar label:first-of-type { margin-left: 0; }
@@ -67,60 +107,90 @@ textarea { width: 100%; max-width: 420px; }
 
 /* Tabeller */
 .sl-table-wrap { overflow-x: auto; }
+.sl-table-wrap + form { margin-top: 14px; }
 .sl-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.sl-table th, .sl-table td { padding: 5px 8px; border: 1px solid #ccc; text-align: left; vertical-align: top; }
-.sl-table th { background: #eee; white-space: nowrap; }
-.sl-table th a { color: #222; text-decoration: none; }
+.sl-table th, .sl-table td { padding: 5px 8px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.sl-table th { background: var(--head); white-space: nowrap; }
+.sl-table th a { color: var(--text); text-decoration: none; }
 .sl-table th a:hover { text-decoration: underline; }
-.sl-table tbody tr:nth-child(even) { background: #fafafa; }
-.sl-table tr.sl-reserved { background: #fff7e0; }
-.sl-table tr.sl-picked { background: #e6efff; }
+.sl-table tbody tr:nth-child(even) { background: var(--zebra); }
+/* Rækkefarver: reserveret = gul, valgt = blå (alle rækker, ikke kun hver anden) */
+.sl-table tbody tr.sl-reserved { background: var(--reserved); }
+#sl-inventar tbody tr:hover { background: var(--row-hover); }
+#sl-inventar tbody tr.sl-reserved:hover { background: var(--reserved-hover); }
+#sl-inventar tbody tr.sl-picked, #sl-inventar tbody tr.sl-picked:hover { background: var(--picked); }
+#sl-inventar tbody tr.sl-current td:first-child { box-shadow: inset 4px 0 0 var(--current-bar); }
+#sl-inventar tbody tr.sl-current:not(.sl-picked) { background: var(--current); }
 #sl-inventar tbody tr[data-href] { cursor: pointer; }
-#sl-inventar tbody tr[data-href]:hover { background: #f0f4fa; }
 .sl-table-small { width: auto; min-width: 320px; }
 .sl-col-check { width: 30px; text-align: center !important; }
 .sl-col-act { width: 1%; white-space: nowrap; }
-.sl-empty { padding: 16px 8px !important; color: #666; text-align: center !important; }
+.sl-empty { padding: 16px 8px !important; color: var(--muted); text-align: center !important; }
 
 /* Status som farvet tekst */
 .sl-st { font-weight: bold; }
-.sl-st-ok { color: #2a7a2a; }
-.sl-st-warn { color: #b36b00; }
-.sl-st-bad { color: #c00; }
+.sl-st-ok { color: var(--ok); }
+.sl-st-warn { color: var(--warn); }
+.sl-st-bad { color: var(--bad); }
 
 /* Række under tabellen: "Med valgte" */
-.sl-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid #ccc; border-top: 0; background: #f6f6f6; font-size: 14px; }
+.sl-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-top: 0; background: var(--toolbar); font-size: 14px; }
 .sl-right { margin-left: auto; }
 
 /* Oplysninger (to kolonner) og formularer (etiket til venstre) */
 .sl-details, .sl-form { border-collapse: collapse; font-size: 14px; }
 .sl-details { min-width: 360px; }
-.sl-details th, .sl-details td { padding: 5px 10px; border: 1px solid #ccc; text-align: left; vertical-align: top; }
-.sl-details th { width: 140px; background: #eee; }
-.sl-details-warn td { background: #fff7e0; }
+.sl-details th, .sl-details td { padding: 5px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.sl-details th { width: 140px; background: var(--head); }
+.sl-details-warn td { background: var(--reserved); }
 .sl-form th, .sl-form td { padding: 5px 10px 5px 0; text-align: left; vertical-align: top; }
 .sl-form th { width: 160px; padding-top: 9px; font-weight: bold; }
 .sl-form input[type="text"], .sl-form input[type="password"], .sl-form select { width: 280px; max-width: 100%; }
 .sl-form input.sl-short { width: 120px; }
 
-/* Vindue med info om en enhed */
-.sl-popup { width: min(680px, calc(100vw - 24px)); max-height: calc(100vh - 40px); padding: 0; border: 1px solid #888; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
-.sl-popup::backdrop { background: rgba(0, 0, 0, .35); }
-.sl-popup-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #bbb; background: #eee; }
-.sl-popup-head h2 { margin: 0; padding: 0; border: 0; font-size: 17px; }
-.sl-popup-close { padding: 0 6px; border: 1px solid #999; background: #f4f4f4; font-size: 18px; line-height: 1.2; cursor: pointer; }
-.sl-popup-content { padding: 12px; overflow: auto; }
-.sl-popup-content h3:first-child { margin-top: 0; }
-.sl-popup .sl-details { width: 100%; min-width: 0; }
+/* Bokse med grå titelbjælke (indstillinger og info-panel) */
+.sl-box { border: 1px solid var(--line-strong); background: var(--bg); }
+.sl-box-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-bottom: 1px solid var(--line-strong); background: var(--bar); }
+.sl-box-head h2 { margin: 0; padding: 0; border: 0; font-size: 15px; }
+.sl-box-body { padding: 10px; }
+.sl-box-body > :last-child { margin-bottom: 0; }
+.sl-close { padding: 0 6px; border: 1px solid var(--field-line); background: var(--btn); color: var(--text); font-size: 16px; line-height: 1.3; cursor: pointer; }
+.sl-close:hover { background: var(--btn-hover); }
+
+/* Indstillinger: fire bokse i to kolonner */
+.sl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; margin-top: 12px; }
+.sl-list { width: 100%; margin-bottom: 10px; border-collapse: collapse; font-size: 14px; }
+.sl-list td { padding: 4px 0; border-bottom: 1px solid var(--line-soft); }
+.sl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sl-row input[type="text"] { flex: 1; min-width: 140px; }
+.sl-row input[type="file"] { flex: 1; min-width: 0; }
+.sl-form-compact { width: 100%; }
+.sl-form-compact th { width: 140px; white-space: nowrap; }
+.sl-form-compact input[type="text"], .sl-form-compact input[type="password"] { width: 100%; }
+
+/* Inventar: listen til venstre, info-panel til højre */
+.sl-split { display: flex; gap: 16px; align-items: flex-start; }
+.sl-split-main { flex: 1; min-width: 0; }
+.sl-panel { position: sticky; top: 12px; flex: none; width: 380px; max-height: calc(100vh - 24px); overflow: auto; }
+.sl-panel .sl-box-head { position: sticky; top: 0; z-index: 1; }
+.sl-panel .sl-details { width: 100%; min-width: 0; }
+.sl-panel .sl-details th { width: 105px; }
+.sl-panel h3 { margin: 14px 0 6px; }
+.sl-panel .sl-buttons { margin: 10px 0 0; }
 
 /* Login */
-.sl-login { width: 100%; max-width: 420px; margin: 60px auto; padding: 16px 20px; border: 1px solid #bbb; background: #fafafa; }
+.sl-login { width: 100%; max-width: 420px; margin: 60px auto; padding: 16px 20px; border: 1px solid var(--line-strong); background: var(--login); }
 .sl-login h1 { margin-bottom: 12px; text-align: center; font-size: 20px; }
 .sl-login .sl-form { width: 100%; }
 .sl-login .sl-form th { width: 110px; }
 .sl-login .sl-form input { width: 100%; }
+.sl-login .sl-theme { display: block; margin: 8px auto 0; font-size: 13px; }
 
-/* Mobil */
+/* Mobil og smal skærm: panelet glider op fra bunden */
+@media (max-width: 900px) {
+  .sl-grid { grid-template-columns: minmax(0, 1fr); }
+  .sl-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 20; width: auto; max-height: 70vh; border-width: 2px 0 0; box-shadow: 0 -4px 16px var(--shadow); }
+}
 @media (max-width: 640px) {
   .sl-user { margin-left: 0; width: 100%; }
   .sl-details { min-width: 0; width: 100%; }
@@ -131,4 +201,3 @@ textarea { width: 100%; max-width: 420px; }
   .sl-form input[type="text"], .sl-form input[type="password"], .sl-form select, textarea { width: 100%; max-width: none; }
   .sl-toolbar input[type="text"] { max-width: none; }
 }
-.sl-table-wrap + form { margin-top: 14px; }

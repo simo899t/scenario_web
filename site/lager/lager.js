@@ -3,6 +3,25 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
 
+  /* ---------- Mørk / lys tilstand ---------- */
+  var root = document.documentElement;
+  var isDark = function () {
+    var t = root.getAttribute("data-theme");
+    return t ? t === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  };
+  var label = function () {
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (b) { b.textContent = isDark() ? "Lys tilstand" : "Mørk tilstand"; });
+  };
+  document.querySelectorAll("[data-theme-toggle]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = isDark() ? "light" : "dark";
+      root.setAttribute("data-theme", t);
+      try { localStorage.setItem("lager-tema", t); } catch (e) { /* ignorér */ }
+      label();
+    });
+  });
+  label();
+
   // Spørg før man sletter eller returnerer
   document.addEventListener("submit", function (e) {
     var msg = e.target.getAttribute("data-confirm");
@@ -14,22 +33,47 @@
     s.addEventListener("change", function () { s.form.submit(); });
   });
 
-  /* ---------- Info om en enhed i et vindue ---------- */
-  var popup = $("sl-popup");
-  function openInfo(href) {
-    if (!popup || typeof popup.showModal !== "function") { location.href = href; return; }
-    fetch(href + "&popup=1", { credentials: "same-origin" })
+  /* ---------- Info om en enhed i panelet til højre ---------- */
+  var panel = $("sl-panel"), split = $("sl-split");
+  var setVis = function (id) {
+    var p = new URLSearchParams(location.search);
+    if (id) p.set("vis", id); else p.delete("vis");
+    history.replaceState(null, "", p.toString() ? "?" + p.toString() : location.pathname);
+    // Formularer i panelet skal lande samme sted bagefter
+    if (panel) panel.querySelectorAll('input[name="retur"]').forEach(function (i) { i.value = p.toString(); });
+    document.querySelectorAll("form.sl-toolbar input[name=vis]").forEach(function (i) { i.value = id || ""; });
+  };
+  var markCurrent = function (id) {
+    document.querySelectorAll("#sl-inventar tbody tr[data-id]").forEach(function (r) {
+      r.classList.toggle("sl-current", r.getAttribute("data-id") === String(id));
+    });
+  };
+  function showInfo(id, href) {
+    if (!panel) { location.href = href; return; }
+    fetch("?side=info&id=" + encodeURIComponent(id) + "&popup=1", { credentials: "same-origin" })
       .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
       .then(function (html) {
-        popup.innerHTML = html;
-        if (!popup.open) popup.showModal();
+        panel.innerHTML = html;
+        panel.hidden = false;
+        split.classList.add("has-panel");
+        markCurrent(id);
+        setVis(id);
+        panel.scrollTop = 0;
       })
       .catch(function () { location.href = href; });
   }
+  function closeInfo() {
+    if (!panel) return;
+    panel.hidden = true;
+    panel.innerHTML = "";
+    split.classList.remove("has-panel");
+    markCurrent(null);
+    setVis(null);
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel && !panel.hidden) closeInfo(); });
   document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-close]")) { closeInfo(); return; }
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
-    var a = e.target.closest("a[data-popup]");
-    if (a) { e.preventDefault(); openInfo(a.href); return; }
     var cell = e.target.closest("#sl-inventar td.sl-col-check");
     if (cell && e.target.tagName !== "INPUT") {
       var cb = cell.querySelector("input");
@@ -37,9 +81,13 @@
       cb.dispatchEvent(new Event("change"));
       return;
     }
-    var row = e.target.closest("#sl-inventar tbody tr[data-href]");
-    if (row && !e.target.closest("a, button, input, label") && !getSelection().toString()) openInfo(row.getAttribute("data-href"));
-    if (e.target.closest("[data-close]") || e.target === popup) popup.close();
+    var row = e.target.closest("#sl-inventar tbody tr[data-id]");
+    if (!row) return;
+    var link = e.target.closest("a");
+    if (link && !link.hasAttribute("data-popup")) return; // fx "Rediger"
+    if (!link && (e.target.closest("button, input, label") || getSelection().toString())) return;
+    e.preventDefault();
+    showInfo(row.getAttribute("data-id"), row.getAttribute("data-href"));
   });
 
   /* ---------- Vælg flere og reserver/returner ---------- */
