@@ -335,6 +335,28 @@ function sc_handle_upload(array $file, string $kind): array
     return ['sti' => "uploads/$year/$base.$ext", 'bredde' => $w, 'hoejde' => $h];
 }
 
+/** Sletter et billede fra uploads/ – men kun hvis det ikke bruges på hjemmesiden. */
+function sc_delete_upload(string $path): void
+{
+    $sti = sc_image_path($path);
+    if ($sti === '' || strpos($sti, 'uploads/') !== 0) {
+        throw new ScApiError('Kun billeder, der er uploadet i editoren, kan slettes.');
+    }
+    $base = realpath(SC_UPLOADS);
+    $file = realpath(SC_ROOT . '/' . $sti);
+    if (!$base || !$file || strpos($file, $base . DIRECTORY_SEPARATOR) !== 0 || !is_file($file)) {
+        throw new ScApiError('Billedet findes ikke længere.', 404);
+    }
+    sc_locked(function () use ($sti, $file) {
+        $raw = sc_data_read('indhold');
+        $json = json_encode(sc_normalize(is_array($raw) ? $raw : sc_default_content()), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (strpos((string)$json, '"' . $sti . '"') !== false) {
+            throw new ScApiError('Billedet bruges stadig på hjemmesiden. Fjern det dér og tryk “Gem og udgiv”, før du sletter det.', 409);
+        }
+        if (!@unlink($file)) throw new ScApiError('Billedet kunne ikke slettes. Prøv igen.', 500);
+    });
+}
+
 function sc_media_list(): array
 {
     $out = [];
@@ -346,7 +368,11 @@ function sc_media_list(): array
             if (!$f->isFile() || !preg_match('~\.(jpe?g|png|webp|gif|avif)$~i', $f->getFilename())) continue;
             $rel = $dir . '/' . str_replace('\\', '/', substr($f->getPathname(), strlen($base) + 1));
             if (sc_image_path($rel) === '') continue;
-            $out[] = ['sti' => $rel, 'tid' => $f->getMTime(), 'mappe' => $dir];
+            $dim = @getimagesize($f->getPathname());
+            $out[] = [
+                'sti' => $rel, 'tid' => $f->getMTime(), 'mappe' => $dir, 'str' => $f->getSize(),
+                'bredde' => $dim ? $dim[0] : 0, 'hoejde' => $dim ? $dim[1] : 0,
+            ];
         }
     }
     usort($out, function ($a, $b) {

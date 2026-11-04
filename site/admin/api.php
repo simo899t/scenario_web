@@ -195,6 +195,13 @@ try {
             sc_json(['billeder' => sc_media_list()]);
         }
 
+        case 'slet-billede': {
+            if (!$isPost) throw new ScApiError('Forkert metode.', 405);
+            sc_require_user();
+            sc_delete_upload((string)($in['sti'] ?? ''));
+            sc_json(['billeder' => sc_media_list()]);
+        }
+
         case 'brugere': {
             sc_require_admin();
             sc_json(['brugere' => array_map('sc_user_public', sc_users())]);

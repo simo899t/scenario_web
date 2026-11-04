@@ -1,5 +1,4 @@
-# Teater Scenario
-DirectoryIndex index.php index.html
+# Teater Scenario – påvirker kun adresserne herunder, ikke undermapper som /lager
 
 # Gamle adresser fra den statiske version
 <IfModule mod_rewrite.c>
