@@ -3,6 +3,7 @@ data/*.php
 data/.lock
 data/*.tmp
 data/backups/*
+data/lager-backups/
 !data/backups/.gitkeep
 uploads/*
 !uploads/.htaccess

@@ -20,14 +20,15 @@ class ScApiError extends Exception
     }
 }
 
-function sc_session_start(): void
+/** Starter en session. Editoren og lageret har hver deres (navn og cookie-sti). */
+function sc_session_start(string $name = 'scenario_redaktoer'): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     $path = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/api.php')), '/') . '/';
     @ini_set('session.use_strict_mode', '1');
     @ini_set('session.use_only_cookies', '1');
     @ini_set('session.gc_maxlifetime', (string)SC_INAKTIV_GRAENSE);
-    session_name('scenario_redaktoer');
+    session_name($name);
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => $path,
@@ -37,7 +38,7 @@ function sc_session_start(): void
     ]);
     session_start();
 
-    if (!empty($_SESSION['bruger']) && time() - (int)($_SESSION['sidst'] ?? 0) > SC_INAKTIV_GRAENSE) {
+    if ((!empty($_SESSION['bruger']) || !empty($_SESSION['lg_bruger'])) && time() - (int)($_SESSION['sidst'] ?? 0) > SC_INAKTIV_GRAENSE) {
         $_SESSION = [];
         session_regenerate_id(true);
     }
