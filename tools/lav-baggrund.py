@@ -52,7 +52,7 @@ def colorize(f):
         out[m] = np.array(c0) * (1 - t) + np.array(c1) * t
     return out
 
-for kind in ("roed", "moerk"):
+for kind in ("roed",):
     img = Image.fromarray(colorize(field(kind)).clip(0, 255).astype(np.uint8))
     img = img.filter(ImageFilter.GaussianBlur(14))
     img = img.resize((1280, 720), Image.LANCZOS)
