@@ -20,6 +20,7 @@ sc_page_start(['titel' => $om['overskrift'], 'beskrivelse' => $om['kort'], 'akti
     <div>
       <h2 class="big"><?= e($a['overskrift']) ?></h2>
       <?php if ($a['undertitel'] !== ''): ?><p class="om-sub"><?= e($a['undertitel']) ?></p><?php endif; ?>
+      <?php if ($a['billede'] !== ''): ?><img class="om-img" src="<?= e($a['billede']) ?>" alt="" loading="lazy"><?php endif; ?>
     </div>
     <div class="om-body"><?= sc_paragraphs($a['tekst']) ?></div>
   </div>

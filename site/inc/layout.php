@@ -36,7 +36,7 @@ function sc_page_start(array $o): void
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= e(sc_asset('style.css')) ?>">
-  <script>document.documentElement.classList.add("js");<?php if (!empty($o['taeppe'])): ?>/* Tæppet åbner kun første gang pr. besøg */try{if(sessionStorage.getItem("sc-taeppe"))document.documentElement.classList.add("uden-taeppe");sessionStorage.setItem("sc-taeppe","1")}catch(e){}<?php endif; ?></script>
+  <script>(function(d){d.classList.add("js");var klar=function(){d.classList.add("taeppe-klar")};<?php if (!empty($o['taeppe'])): ?>/* Tæppet åbner kun første gang pr. besøg – og først når billedet er hentet */var vis=true;try{if(sessionStorage.getItem("sc-taeppe")){d.classList.add("uden-taeppe");vis=false}sessionStorage.setItem("sc-taeppe","1")}catch(e){}if(vis){var i=new Image();i.onload=i.onerror=klar;i.src="billeder/praesentation.png";setTimeout(klar,6000)}else<?php endif; ?> klar()})(document.documentElement)</script>
 <?php if (!empty($o['jsonld'])): ?>
   <script type="application/ld+json"><?= json_encode($o['jsonld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 <?php endif; ?>

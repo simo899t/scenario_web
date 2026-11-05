@@ -156,8 +156,8 @@ function sc_schema(): array
         'generelt' => ['sidenavn' => 'line', 'beskrivelse' => 'line'],
         'forside' => ['undertitel' => 'line', 'baggrund' => 'image', 'aktuelOverskrift' => 'line'],
         'om' => [
-            'overskrift' => 'line', 'kort' => 'text', 'knap' => 'line',
-            'afsnit' => [['overskrift' => 'line', 'undertitel' => 'line', 'tekst' => 'longtext']],
+            'overskrift' => 'line', 'kort' => 'text', 'knap' => 'line', 'billede' => 'image',
+            'afsnit' => [['overskrift' => 'line', 'undertitel' => 'line', 'tekst' => 'longtext', 'billede' => 'image']],
         ],
         'forestillingerTekst' => ['overskrift' => 'line', 'intro' => 'text'],
         'events' => [[

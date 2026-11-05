@@ -49,10 +49,13 @@ sc_page_start(['aktiv' => 'forside', 'taeppe' => true]);
 <?php endif; ?>
 
 <section class="about" id="om">
-  <div class="wrap reveal">
-    <h2 class="big"><?= e($c['om']['overskrift']) ?></h2>
-    <div class="about-short"><?= sc_paragraphs($c['om']['kort']) ?></div>
-    <?php if ($c['om']['knap'] !== ''): ?><a class="btn btn-dark" href="om.php"><?= e($c['om']['knap']) ?> →</a><?php endif; ?>
+  <div class="wrap reveal<?= $c['om']['billede'] !== '' ? ' about-split' : '' ?>">
+    <div>
+      <h2 class="big"><?= e($c['om']['overskrift']) ?></h2>
+      <div class="about-short"><?= sc_paragraphs($c['om']['kort']) ?></div>
+      <?php if ($c['om']['knap'] !== ''): ?><a class="btn btn-dark" href="om.php"><?= e($c['om']['knap']) ?> →</a><?php endif; ?>
+    </div>
+    <?php if ($c['om']['billede'] !== ''): ?><img class="about-img" src="<?= e($c['om']['billede']) ?>" alt="" loading="lazy"><?php endif; ?>
   </div>
 </section>
 

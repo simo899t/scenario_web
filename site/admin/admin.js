@@ -1227,7 +1227,8 @@
         grid2(
           textInput(a, "overskrift", { label: "Overskrift", placeholder: "fx Visioner og mål" }),
           textInput(a, "undertitel", { label: "Undertitel (valgfri)", placeholder: "fx For dig, der vil mere med scenekunst" })),
-        textArea(a, "tekst", { label: "Tekst", rows: 8 })));
+        textArea(a, "tekst", { label: "Tekst", rows: 8 }),
+        imageField(a, "billede", { label: "Billede (valgfrit)", help: "Vises under overskriften – på mobil mellem overskriften og teksten." })));
     });
     return [
       pageHead("Om os", "Den korte tekst på forsiden og hele siden “Om os”.",
@@ -1235,10 +1236,11 @@
       card("På forsiden", "Vises på forsiden med en knap videre til siden “Om os”.",
         textInput(om, "overskrift", { label: "Overskrift", placeholder: "Om scenario" }),
         textArea(om, "kort", { label: "Kort tekst", rows: 3 }),
-        textInput(om, "knap", { label: "Tekst på knappen", placeholder: "Læs mere om Scenario" })),
+        textInput(om, "knap", { label: "Tekst på knappen", placeholder: "Læs mere om Scenario" }),
+        imageField(om, "billede", { label: "Billede (valgfrit)", help: "Vises ved siden af teksten på forsiden. Lad feltet stå tomt for kun at vise tekst." })),
       h("div", { class: "section-head" },
         h("h2", { text: "Afsnit på siden “Om os”" }),
-        h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: () => { om.afsnit.push({ overskrift: "", undertitel: "", tekst: "" }); changed(); renderView(true); focusLast(".stack-lg > .card", "input"); } }, icon("plus"), "Tilføj afsnit")),
+        h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: () => { om.afsnit.push({ overskrift: "", undertitel: "", tekst: "", billede: "" }); changed(); renderView(true); focusLast(".stack-lg > .card", "input"); } }, icon("plus"), "Tilføj afsnit")),
       om.afsnit.length ? list : emptyState("info", "Ingen afsnit", "Tilføj et afsnit for at skrive om foreningen.", null),
     ];
   }
@@ -1348,6 +1350,8 @@
       if (ev.galleri.includes(path)) out.push([`${t} – galleri`, `#/forestillinger/${i}`]);
     });
     if (c.medvirk.billeder.includes(path)) out.push(["Vær med – billeder", "#/medvirk"]);
+    if (c.om.billede === path) out.push(["Om scenario – forsiden", "#/om"]);
+    c.om.afsnit.forEach((a) => { if (a.billede === path) out.push([`Om os – ${a.overskrift || "afsnit"}`, "#/om"]); });
     c.sponsorer.forEach((sp) => { if (sp.logo === path) out.push([`Sponsor: ${sp.navn || "uden navn"}`, "#/sponsorer"]); });
     return out;
   }
