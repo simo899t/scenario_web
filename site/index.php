@@ -69,18 +69,17 @@ sc_page_start(['aktiv' => 'forside', 'taeppe' => true]);
 <?php endif; ?>
 
 <section class="join" id="medvirk">
-  <div class="wrap reveal">
-    <h2 class="big"><?= e($m['overskrift']) ?></h2>
-    <div class="lead"><?= sc_paragraphs($m['tekst']) ?></div>
-    <?php if ($m['roller']): ?>
-    <ul class="roles"><?php foreach ($m['roller'] as $r): ?><li><?= e($r) ?></li><?php endforeach; ?></ul>
-    <?php endif; ?>
-    <?php if ($m['knap'] !== ''): ?><a class="btn btn-light" href="<?= e($mLink) ?>"><?= e($m['knap']) ?></a><?php endif; ?>
-    <?php if ($m['billeder']):
-        $n = count($m['billeder']);
-        // Op til 4 på en række – ved flere vælges 3 eller 4, så der ikke står ét billede alene til sidst
-        $cols = $n <= 4 ? $n : ($n % 4 === 0 ? 4 : ($n % 3 === 0 ? 3 : ($n % 4 >= $n % 3 ? 4 : 3))); ?>
-    <ul class="join-photos<?= $n === 1 ? ' join-photos-one' : '' ?>" style="--cols: <?= $cols ?>" data-gallery>
+  <div class="wrap reveal<?= $m['billeder'] ? ' join-split' : '' ?>">
+    <div class="join-text">
+      <h2 class="big"><?= e($m['overskrift']) ?></h2>
+      <div class="lead"><?= sc_paragraphs($m['tekst']) ?></div>
+      <?php if ($m['roller']): ?>
+      <ul class="roles"><?php foreach ($m['roller'] as $r): ?><li><?= e($r) ?></li><?php endforeach; ?></ul>
+      <?php endif; ?>
+      <?php if ($m['knap'] !== ''): ?><a class="btn btn-light" href="<?= e($mLink) ?>"><?= e($m['knap']) ?></a><?php endif; ?>
+    </div>
+    <?php if ($m['billeder']): ?>
+    <ul class="join-photos" data-n="<?= min(count($m['billeder']), 5) ?>" data-gallery>
       <?php foreach ($m['billeder'] as $i => $img): ?>
       <li><a href="<?= e($img) ?>" data-index="<?= $i ?>"><img src="<?= e($img) ?>" alt="<?= e($m['overskrift']) ?> – billede <?= $i + 1 ?>" loading="lazy"></a></li>
       <?php endforeach; ?>
