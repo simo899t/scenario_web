@@ -230,14 +230,18 @@ h2.big { font-family: var(--sans); font-weight: 600; font-size: clamp(2.2rem, 5.
 .join-photos a { display: block; overflow: hidden; aspect-ratio: 1 / 1; cursor: zoom-in; }
 .join-photos img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
 .join-photos a:hover img { transform: scale(1.04); }
+/* 1 billede: ét stort – 2: ved siden af hinanden – 3: to små og et bredt – 4: 2 × 2 */
 .join-photos[data-n="1"] { grid-template-columns: minmax(0, 1fr); }
 .join-photos[data-n="1"] a { aspect-ratio: 4 / 3; }
 .join-photos[data-n="2"] a { aspect-ratio: 3 / 4; }
-.join-photos li:last-child:nth-child(odd):not(:first-child) { grid-column: 1 / -1; }
-.join-photos li:last-child:nth-child(odd):not(:first-child) a { aspect-ratio: 2 / 1; }
+.join-photos[data-n="3"] li:last-child { grid-column: 1 / -1; }
+.join-photos[data-n="3"] li:last-child a { aspect-ratio: 2 / 1; }
+/* 5 eller flere: tre på en række, og den sidste række fyldes altid ud */
 .join-photos[data-n="5"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.join-photos[data-n="5"] li:last-child:nth-child(odd):not(:first-child) { grid-column: auto; }
-.join-photos[data-n="5"] li:last-child:nth-child(odd):not(:first-child) a { aspect-ratio: 1 / 1; }
+.join-photos[data-n="5"] li:last-child:nth-child(3n+1) { grid-column: 1 / -1; }
+.join-photos[data-n="5"] li:last-child:nth-child(3n+1) a { aspect-ratio: 3 / 1; }
+.join-photos[data-n="5"] li:nth-last-child(2):nth-child(3n+1) { grid-column: span 2; }
+.join-photos[data-n="5"] li:nth-last-child(2):nth-child(3n+1) a { aspect-ratio: auto; height: 100%; }
 @media (min-width: 900px) {
   .join-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); gap: clamp(48px, 6vw, 96px); align-items: center; }
   .join-split .join-photos { margin-top: 0; }
