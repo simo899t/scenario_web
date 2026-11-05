@@ -81,10 +81,12 @@ sc_page_start([
         <?php endif; ?>
       </dl>
       <?= sc_countdown($ev) ?>
+      <?php if ($ev['billetLink'] !== '' || $ev['proeveplan'] !== ''): ?>
       <div class="show-buttons">
         <?php if ($ev['billetLink'] !== ''): ?><a class="btn" href="<?= e($ev['billetLink']) ?>" target="_blank" rel="noopener">Køb billet</a><?php endif; ?>
-        <?php if ($ev['eksterntLink'] !== ''): ?><a class="btn btn-ghost" href="<?= e($ev['eksterntLink']) ?>" target="_blank" rel="noopener">Mere info ↗</a><?php endif; ?>
+        <?php if ($ev['proeveplan'] !== ''): ?><a class="btn btn-dark" href="<?= e($ev['proeveplan']) ?>" target="_blank" rel="noopener">Se prøveplan</a><?php endif; ?>
       </div>
+      <?php endif; ?>
     </aside>
 
     <div class="show-text">

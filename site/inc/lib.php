@@ -166,7 +166,7 @@ function sc_schema(): array
             'tekst' => 'text', 'beskrivelse' => 'longtext',
             'billede' => 'image', 'galleri' => ['image'],
             'hold' => [['rolle' => 'line', 'navn' => 'line']],
-            'video' => 'link', 'billetLink' => 'link', 'eksterntLink' => 'link',
+            'video' => 'link', 'billetLink' => 'link', 'proeveplan' => 'link',
             'fremhaevet' => 'bool', 'skjult' => 'bool',
         ]],
         'medvirk' => ['overskrift' => 'line', 'tekst' => 'text', 'roller' => ['line'], 'knap' => 'line', 'link' => 'link'],

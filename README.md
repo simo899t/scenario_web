@@ -45,6 +45,17 @@ ny version af koden, så **overskriv eller slet aldrig de to mapper** (pas på m
 Hver gang nogen gemmer, lægges den forrige version i `data/backups/` (de seneste 100).
 Under **Historik** i editoren kan enhver version gendannes med ét klik.
 
+## Lageret (/lager)
+
+Udstyrslageret ligger i `site/lager/` og erstatter det gamle WordPress-plugin. Det bruger
+samme slags filer som resten af siden – ingen database.
+
+- Første gang man åbner `/lager/`, opretter man en administrator. Flere personer tilføjes under **Brugere**.
+- Enheder, reservationer og sektioner gemmes i `data/lager.php`, logins i `data/lager-brugere.php`.
+  Hver gang noget ændres, gemmes den forrige version i `data/lager-backups/` (de seneste 50).
+- Under **Indstillinger** kan man importere fra Excel/CSV (kolonner: ID, Navn, Placering, Beskrivelse)
+  og hente hele lageret som en Excel-venlig fil.
+
 ## Prøv lokalt
 
 ```sh

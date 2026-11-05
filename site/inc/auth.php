@@ -20,14 +20,15 @@ class ScApiError extends Exception
     }
 }
 
-function sc_session_start(): void
+/** Starter en session. Editoren og lageret har hver deres (navn og cookie-sti). */
+function sc_session_start(string $name = 'scenario_redaktoer'): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     $path = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/admin/api.php')), '/') . '/';
     @ini_set('session.use_strict_mode', '1');
     @ini_set('session.use_only_cookies', '1');
     @ini_set('session.gc_maxlifetime', (string)SC_INAKTIV_GRAENSE);
-    session_name('scenario_redaktoer');
+    session_name($name);
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => $path,
@@ -37,7 +38,7 @@ function sc_session_start(): void
     ]);
     session_start();
 
-    if (!empty($_SESSION['bruger']) && time() - (int)($_SESSION['sidst'] ?? 0) > SC_INAKTIV_GRAENSE) {
+    if ((!empty($_SESSION['bruger']) || !empty($_SESSION['lg_bruger'])) && time() - (int)($_SESSION['sidst'] ?? 0) > SC_INAKTIV_GRAENSE) {
         $_SESSION = [];
         session_regenerate_id(true);
     }
@@ -335,6 +336,28 @@ function sc_handle_upload(array $file, string $kind): array
     return ['sti' => "uploads/$year/$base.$ext", 'bredde' => $w, 'hoejde' => $h];
 }
 
+/** Sletter et billede fra uploads/ – men kun hvis det ikke bruges på hjemmesiden. */
+function sc_delete_upload(string $path): void
+{
+    $sti = sc_image_path($path);
+    if ($sti === '' || strpos($sti, 'uploads/') !== 0) {
+        throw new ScApiError('Kun billeder, der er uploadet i editoren, kan slettes.');
+    }
+    $base = realpath(SC_UPLOADS);
+    $file = realpath(SC_ROOT . '/' . $sti);
+    if (!$base || !$file || strpos($file, $base . DIRECTORY_SEPARATOR) !== 0 || !is_file($file)) {
+        throw new ScApiError('Billedet findes ikke længere.', 404);
+    }
+    sc_locked(function () use ($sti, $file) {
+        $raw = sc_data_read('indhold');
+        $json = json_encode(sc_normalize(is_array($raw) ? $raw : sc_default_content()), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (strpos((string)$json, '"' . $sti . '"') !== false) {
+            throw new ScApiError('Billedet bruges stadig på hjemmesiden. Fjern det dér og tryk “Gem og udgiv”, før du sletter det.', 409);
+        }
+        if (!@unlink($file)) throw new ScApiError('Billedet kunne ikke slettes. Prøv igen.', 500);
+    });
+}
+
 function sc_media_list(): array
 {
     $out = [];
@@ -346,7 +369,11 @@ function sc_media_list(): array
             if (!$f->isFile() || !preg_match('~\.(jpe?g|png|webp|gif|avif)$~i', $f->getFilename())) continue;
             $rel = $dir . '/' . str_replace('\\', '/', substr($f->getPathname(), strlen($base) + 1));
             if (sc_image_path($rel) === '') continue;
-            $out[] = ['sti' => $rel, 'tid' => $f->getMTime(), 'mappe' => $dir];
+            $dim = @getimagesize($f->getPathname());
+            $out[] = [
+                'sti' => $rel, 'tid' => $f->getMTime(), 'mappe' => $dir, 'str' => $f->getSize(),
+                'bredde' => $dim ? $dim[0] : 0, 'hoejde' => $dim ? $dim[1] : 0,
+            ];
         }
     }
     usort($out, function ($a, $b) {

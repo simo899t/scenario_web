@@ -60,39 +60,6 @@
     tick();
   });
 
-  // Billede der følger musen over forestillingslisten (kun med mus)
-  const rows = $$(".event-row[data-img]");
-  if (rows.length && matchMedia("(hover: hover) and (pointer: fine)").matches && !reduceMotion) {
-    const peek = document.createElement("div");
-    peek.className = "peek";
-    peek.setAttribute("aria-hidden", "true");
-    const img = document.createElement("img");
-    img.alt = "";
-    peek.append(img);
-    document.body.append(peek);
-    let x = 0, y = 0, px = 0, py = 0, raf = 0;
-    const follow = () => {
-      px += (x - px) * 0.18;
-      py += (y - py) * 0.18;
-      peek.style.left = px + "px";
-      peek.style.top = py + "px";
-      raf = Math.abs(x - px) + Math.abs(y - py) > 0.5 ? requestAnimationFrame(follow) : 0;
-    };
-    rows.forEach((row) => {
-      row.addEventListener("mouseenter", (e) => {
-        img.src = row.dataset.img;
-        if (!peek.classList.contains("on")) { px = x = e.clientX + 200; py = y = e.clientY; }
-        peek.classList.add("on");
-      });
-      row.addEventListener("mousemove", (e) => {
-        x = e.clientX + 200; y = e.clientY;
-        if (!raf) raf = requestAnimationFrame(follow);
-      });
-      row.addEventListener("mouseleave", () => peek.classList.remove("on"));
-    });
-    addEventListener("scroll", () => peek.classList.remove("on"), { passive: true });
-  }
-
   // Lysboks til billedgalleriet
   const gallery = document.querySelector("[data-gallery]");
   if (gallery && typeof HTMLDialogElement === "function") {

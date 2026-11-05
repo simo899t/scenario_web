@@ -56,6 +56,8 @@
     star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
     key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/>',
     copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
+    crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
+    download: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 20h16"/>',
     spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
   };
 
@@ -236,6 +238,163 @@
   }
 
   /* =========================================================
+     Beskæring
+  ========================================================= */
+
+  const FORMATER = [["fri", "Fri", 0], ["16:9", "Bred", 16 / 9], ["4:3", "4:3", 4 / 3], ["1:1", "Kvadrat", 1], ["4:5", "Stående", 4 / 5]];
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const isLocal = (p) => !!p && !/^https?:\/\//i.test(p);
+  const cropOpts = (kind) => (kind === "logo" ? { aspect: "1:1", max: 800 } : { aspect: "fri", max: 2400 });
+
+  function loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(apiError("Billedet kunne ikke åbnes.", 0));
+      img.src = src;
+    });
+  }
+
+  /**
+   * Viser et vindue, hvor man kan beskære et billede.
+   * source er enten en fil (nyt billede) eller en sti (et billede, der allerede er på siden).
+   * Svarer med en fil, der skal uploades – eller null, hvis man fortryder.
+   */
+  async function cropImage(source, { aspect = "fri", max = 2400 } = {}) {
+    const isFile = source instanceof Blob;
+    if (isFile && !/^image\/(jpeg|png|webp)$/.test(source.type)) return source; // fx GIF bruges, som den er
+    const url = isFile ? URL.createObjectURL(source) : imgSrc(source);
+    let img;
+    try {
+      img = await loadImg(url);
+    } catch (err) {
+      if (isFile) { URL.revokeObjectURL(url); return source; }
+      throw err;
+    }
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const MIN = Math.max(16, Math.min(W, H) * 0.04);
+    let ratio = (FORMATER.find((f) => f[0] === aspect) || FORMATER[0])[2];
+    let r = { x: 0, y: 0, w: W, h: H };
+    const fit = () => {
+      if (!ratio) { r = { x: 0, y: 0, w: W, h: H }; return; }
+      let w = W, hh = W / ratio;
+      if (hh > H) { hh = H; w = H * ratio; }
+      r = { x: (W - w) / 2, y: (H - hh) / 2, w, h: hh };
+    };
+    fit();
+
+    const shown = h("img", { src: url, alt: "", draggable: "false" });
+    const shade = h("div", { class: "crop-shade" }, h("span"));
+    const box = h("div", { class: "crop-box", tabindex: "0", "aria-label": "Beskæringsramme – flyt den med piletasterne" },
+      h("span", { class: "crop-grid" }),
+      ["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((d) => h("span", { class: "crop-h crop-" + d, "data-d": d })));
+    const stage = h("div", { class: "crop-stage" }, shown, shade, box);
+    const sizeInfo = h("span", { class: "muted small" });
+    const scale = () => (shown.clientWidth || W) / W;
+    const draw = () => {
+      const k = scale();
+      const css = { left: r.x * k + "px", top: r.y * k + "px", width: r.w * k + "px", height: r.h * k + "px" };
+      Object.assign(box.style, css);
+      Object.assign(shade.firstChild.style, css);
+      box.classList.toggle("locked", !!ratio);
+      sizeInfo.textContent = `${Math.round(r.w)} × ${Math.round(r.h)} px`;
+    };
+
+    let drag = null;
+    box.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      box.setPointerCapture(e.pointerId);
+      box.classList.add("dragging");
+      drag = { d: e.target.dataset.d || "move", px: e.clientX, py: e.clientY, o: { ...r } };
+    });
+    box.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const k = scale();
+      const dx = (e.clientX - drag.px) / k, dy = (e.clientY - drag.py) / k;
+      const o = drag.o, d = drag.d;
+      if (d === "move") {
+        r = { ...o, x: clamp(o.x + dx, 0, W - o.w), y: clamp(o.y + dy, 0, H - o.h) };
+      } else if (ratio) {
+        // Låst format: det modsatte hjørne står stille
+        const wX = d.includes("e") ? o.w + dx : o.w - dx;
+        const wY = (d.includes("s") ? o.h + dy : o.h - dy) * ratio;
+        const maxW = d.includes("e") ? W - o.x : o.x + o.w;
+        const maxH = d.includes("s") ? H - o.y : o.y + o.h;
+        const w = clamp(Math.max(wX, wY), Math.max(MIN, MIN * ratio), Math.min(maxW, maxH * ratio));
+        const hh = w / ratio;
+        r = { x: d.includes("w") ? o.x + o.w - w : o.x, y: d.includes("n") ? o.y + o.h - hh : o.y, w, h: hh };
+      } else {
+        let L = o.x, T = o.y, R = o.x + o.w, B = o.y + o.h;
+        if (d.includes("w")) L = clamp(o.x + dx, 0, R - MIN);
+        if (d.includes("e")) R = clamp(R + dx, L + MIN, W);
+        if (d.includes("n")) T = clamp(o.y + dy, 0, B - MIN);
+        if (d.includes("s")) B = clamp(B + dy, T + MIN, H);
+        r = { x: L, y: T, w: R - L, h: B - T };
+      }
+      draw();
+    });
+    const end = () => { drag = null; box.classList.remove("dragging"); };
+    box.addEventListener("pointerup", end);
+    box.addEventListener("pointercancel", end);
+    box.addEventListener("keydown", (e) => {
+      const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+      if (!k) return;
+      e.preventDefault();
+      const step = e.shiftKey ? 0.1 : 0.01;
+      r = { ...r, x: clamp(r.x + k[0] * W * step, 0, W - r.w), y: clamp(r.y + k[1] * H * step, 0, H - r.h) };
+      draw();
+    });
+
+    const chips = h("div", { class: "chips", role: "group", "aria-label": "Format" });
+    const drawChips = () => chips.replaceChildren(...FORMATER.map(([, label, rt]) =>
+      h("button", {
+        type: "button", class: "chip" + (rt === ratio ? " on" : ""), "aria-pressed": String(rt === ratio),
+        onclick: () => { ratio = rt; if (rt) fit(); draw(); drawChips(); },
+      }, label)));
+    drawChips();
+
+    let ro = null;
+    const choice = await modal({
+      title: "Beskær billede",
+      wide: true,
+      body: (close) => h("div", { class: "stack" },
+        chips,
+        h("div", { class: "crop-wrap" }, stage),
+        h("div", { class: "crop-foot" },
+          h("p", { class: "help", text: "Træk i rammen for at flytte den, og i hjørnerne for at gøre den større eller mindre." }), sizeInfo),
+        h("div", { class: "modal-actions flush" },
+          h("button", { type: "button", class: "btn btn-secondary", onclick: () => close(null) }, "Annuller"),
+          isFile && h("button", { type: "button", class: "btn btn-ghost", onclick: () => close("hele") }, "Brug hele billedet"),
+          h("button", { type: "button", class: "btn btn-primary", onclick: () => close("beskaer") }, icon("crop"), "Beskær og brug"))),
+      onOpen: () => {
+        requestAnimationFrame(draw);
+        if (typeof ResizeObserver === "function") { ro = new ResizeObserver(draw); ro.observe(shown); }
+      },
+    });
+    if (ro) ro.disconnect();
+    try {
+      if (!choice) return null;
+      if (choice === "hele") return source;
+      const k = Math.min(1, max / Math.max(r.w, r.h));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(r.w * k));
+      c.height = Math.max(1, Math.round(r.h * k));
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
+      const jpeg = isFile ? source.type === "image/jpeg" : /\.jpe?g$/i.test(source);
+      const toBlob = (type) => new Promise((res) => c.toBlob(res, type, 0.9));
+      let blob = await toBlob("image/webp");
+      if (!blob || blob.type !== "image/webp") blob = await toBlob(jpeg ? "image/jpeg" : "image/png");
+      if (!blob) throw apiError("Billedet kunne ikke beskæres i denne browser.", 0);
+      const base = (isFile ? source.name : source.split("/").pop()).replace(/\.[^.]+$/, "").replace(/-[0-9a-f]{6}$/, "");
+      return new File([blob], base + "." + blob.type.split("/")[1].replace("jpeg", "jpg"), { type: blob.type });
+    } finally {
+      if (isFile) URL.revokeObjectURL(url);
+    }
+  }
+
+  /* =========================================================
      Gem, kladde og ændringer
   ========================================================= */
 
@@ -391,14 +550,14 @@
         resolve(v);
       };
       const content = typeof body === "function" ? body(close) : body;
-      dlg.append(
+      dlg.append(...[
         h("div", { class: "modal-head" },
           h("h2", { text: title }),
           h("button", { type: "button", class: "icon-btn", "aria-label": "Luk", onclick: () => close(null) }, icon("x"))),
         h("div", { class: "modal-body" }, content),
         actions && h("div", { class: "modal-actions" }, actions.map((a) =>
-          h("button", { type: "button", class: "btn " + (a.cls || "btn-secondary"), onclick: () => close(a.value) }, a.label)))
-      );
+          h("button", { type: "button", class: "btn " + (a.cls || "btn-secondary"), onclick: () => close(a.value) }, a.label))),
+      ].filter(Boolean));
       dlg.addEventListener("cancel", (e) => { e.preventDefault(); close(null); });
       document.body.append(dlg);
       dlg.showModal();
@@ -433,36 +592,101 @@
     });
   }
 
-  /** Vælg et billede, der allerede ligger på serveren. */
-  function pickImage(kind) {
+  /**
+   * Vælg billeder, der allerede ligger på serveren.
+   * opt.event: forestillingen, der redigeres (giver fanen "Denne forestilling")
+   * opt.multiple: vælg flere på én gang (svarer med en liste)
+   */
+  function pickImage(kind, opt = {}) {
+    const multiple = !!opt.multiple;
+    const ev = opt.event || null;
     return modal({
-      title: "Vælg et billede",
+      title: multiple ? "Vælg billeder" : "Vælg et billede",
       wide: true,
       body: (close) => {
+        let filter = null;
+        const chosen = new Set();
+        const tabs = h("div", { class: "chips" });
         const grid = h("div", { class: "picker-grid" }, h("div", { class: "loading" }, h("div", { class: "spinner" }), "Henter billeder…"));
         const fileInp = h("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/gif", hidden: true });
-        const upBtn = h("button", { type: "button", class: "btn btn-primary btn-sm", onclick: () => fileInp.click() }, icon("upload"), "Upload nyt billede");
+        const upBtn = h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: () => fileInp.click() }, icon("upload"), h("span", { text: "Upload nyt" }));
+        const addBtn = multiple ? h("button", { type: "button", class: "btn btn-primary", disabled: true, onclick: () => close([...chosen]) }, icon("check"), h("span", { text: "Tilføj valgte" })) : null;
+        const updateAdd = () => {
+          if (!addBtn) return;
+          addBtn.disabled = !chosen.size;
+          addBtn.lastChild.textContent = chosen.size ? `Tilføj ${chosen.size} ${chosen.size === 1 ? "billede" : "billeder"}` : "Tilføj valgte";
+        };
         fileInp.addEventListener("change", async () => {
           const f = fileInp.files[0];
+          fileInp.value = "";
           if (!f) return;
+          let ready = null;
+          try { ready = await cropImage(f, cropOpts(kind)); } catch (err) { handleError(err); return; }
+          if (!ready) return;
           upBtn.disabled = true;
           upBtn.lastChild.textContent = "Uploader…";
-          try { close((await uploadImage(f, kind)).sti); } catch (err) { handleError(err); upBtn.disabled = false; upBtn.lastChild.textContent = "Upload nyt billede"; }
+          try {
+            const sti = (await uploadImage(ready, kind)).sti;
+            close(multiple ? [sti] : sti);
+          } catch (err) {
+            handleError(err);
+            upBtn.disabled = false;
+            upBtn.lastChild.textContent = "Upload nyt";
+          }
         });
+        const lists = () => {
+          const all = S.billeder;
+          const own = ev ? [...new Set([ev.billede, ...ev.galleri].filter(Boolean))] : [];
+          return {
+            ubrugte: all.filter((b) => b.mappe === "uploads" && !usages(b.sti).length),
+            forestilling: own.map((p) => all.find((b) => b.sti === p) || { sti: p }),
+            alle: all,
+          };
+        };
+        const EMPTY = {
+          ubrugte: "Der er ingen ubrugte billeder. Upload et nyt, eller se under “Alle”.",
+          forestilling: "Forestillingen har ingen billeder endnu.",
+          alle: "Der er ingen billeder endnu. Upload et nyt.",
+        };
+        const draw = () => {
+          const L = lists();
+          if (!filter) filter = L.ubrugte.length ? "ubrugte" : L.forestilling.length ? "forestilling" : "alle";
+          const defs = [["ubrugte", "Ikke i brug"], ev && ["forestilling", "Denne forestilling"], ["alle", "Alle"]].filter(Boolean);
+          tabs.replaceChildren(...defs.map(([id, label]) =>
+            h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), "aria-pressed": String(filter === id), onclick: () => { filter = id; draw(); } }, `${label} (${L[id].length})`)));
+          const list = L[filter];
+          grid.replaceChildren();
+          if (!list.length) grid.append(h("p", { class: "muted", text: EMPTY[filter] }));
+          for (const b of list) {
+            const item = h("button", {
+              type: "button", class: "picker-item" + (chosen.has(b.sti) ? " on" : ""), title: fileName(b.sti),
+              "aria-pressed": multiple ? String(chosen.has(b.sti)) : null,
+              onclick: () => {
+                if (!multiple) return close(b.sti);
+                if (chosen.has(b.sti)) chosen.delete(b.sti); else chosen.add(b.sti);
+                item.classList.toggle("on", chosen.has(b.sti));
+                item.setAttribute("aria-pressed", String(chosen.has(b.sti)));
+                updateAdd();
+              },
+            }, h("img", { src: imgSrc(b.sti), alt: "", loading: "lazy" }), multiple && h("span", { class: "picker-check" }, icon("check")));
+            grid.append(item);
+          }
+          updateAdd();
+        };
         (async () => {
           try {
-            if (!S.billeder) S.billeder = (await api("billeder")).billeder;
-            grid.replaceChildren();
-            if (!S.billeder.length) grid.append(h("p", { class: "muted", text: "Der er ingen billeder endnu. Upload et nyt." }));
-            for (const b of S.billeder) {
-              grid.append(h("button", { type: "button", class: "picker-item", title: b.sti.split("/").pop(), onclick: () => close(b.sti) },
-                h("img", { src: imgSrc(b.sti), alt: "", loading: "lazy" })));
-            }
+            S.billeder = (await api("billeder")).billeder;
+            draw();
           } catch (err) {
             grid.replaceChildren(h("p", { class: "muted", text: err.message }));
           }
         })();
-        return h("div", { class: "stack" }, h("div", { class: "picker-bar" }, h("p", { class: "muted", text: "Klik på et billede for at bruge det." }), upBtn, fileInp), grid);
+        return h("div", { class: "stack" },
+          h("div", { class: "picker-bar" }, tabs, upBtn, fileInp),
+          h("p", { class: "help", text: multiple ? "Klik på billederne for at vælge dem, og tryk så “Tilføj”." : "Klik på et billede for at bruge det." }),
+          grid,
+          multiple && h("div", { class: "modal-actions flush picker-actions" },
+            h("button", { type: "button", class: "btn btn-secondary", onclick: () => close(null) }, "Annuller"), addBtn));
       },
     });
   }
@@ -539,7 +763,7 @@
     });
     ta.value = obj[key] || "";
     requestAnimationFrame(() => { if (ta.isConnected) autosize(ta); });
-    const help = o.help === undefined ? "Lav en tom linje for at starte et nyt afsnit. Skriv **sådan her** for fed tekst." : o.help;
+    const help = o.help === undefined ? "Lav en tom linje for at starte et nyt afsnit." : o.help;
     return field({ label: o.label, help, id, cls: o.cls }, ta);
   }
 
@@ -585,7 +809,7 @@
       const progress = h("div", { class: "progress", hidden: true }, bar);
       const box = h("div", { class: "image-field" + (val ? "" : " empty") + (o.compact ? " compact" : "") });
       const fileInp = h("input", { type: "file", accept: "image/jpeg,image/png,image/webp,image/gif", hidden: true });
-      const doUpload = async (f) => {
+      const send = async (f) => {
         progress.hidden = false;
         box.classList.add("busy");
         try {
@@ -601,13 +825,18 @@
           box.classList.remove("busy");
         }
       };
-      fileInp.addEventListener("change", () => { if (fileInp.files[0]) doUpload(fileInp.files[0]); });
+      const doUpload = async (f, existing) => {
+        let ready = null;
+        try { ready = await cropImage(existing || f, cropOpts(kind)); } catch (err) { handleError(err); return; }
+        if (ready) send(ready);
+      };
+      fileInp.addEventListener("change", () => { const f = fileInp.files[0]; fileInp.value = ""; if (f) doUpload(f); });
       const preview = val
         ? h("img", { src: imgSrc(val), alt: "" })
         : h("button", { type: "button", class: "image-empty", onclick: () => fileInp.click() }, icon("image"),
             h("span", { text: o.compact ? "Upload logo" : "Klik for at uploade – eller træk et billede herind" }));
       const choose = async () => {
-        const p = await pickImage(kind);
+        const p = await pickImage(kind, { event: o.event });
         if (p) { obj[key] = p; changed(); if (o.onChange) o.onChange(p); render(); }
       };
       box.append(
@@ -615,6 +844,7 @@
         h("div", { class: "image-actions" },
           h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: () => fileInp.click(), title: "Upload et billede fra din computer eller telefon" }, icon("upload"), o.compact ? "Upload" : val ? "Upload nyt" : "Upload billede"),
           h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: choose, title: "Vælg et billede, der allerede er uploadet" }, icon("image"), o.compact ? "Vælg" : "Vælg fra billeder"),
+          isLocal(val) && h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: () => doUpload(null, val), "aria-label": "Beskær billedet", title: "Beskær billedet" }, icon("crop"), o.compact ? "" : "Beskær"),
           val && h("button", { type: "button", class: "btn btn-ghost btn-sm danger", onclick: () => { obj[key] = ""; changed(); if (o.onChange) o.onChange(""); render(); }, "aria-label": "Fjern billedet", title: "Fjern billedet" }, icon("x"), o.compact ? "" : "Fjern"),
           fileInp)
       );
@@ -636,19 +866,49 @@
           h("div", { class: "gallery-tools" },
             h("button", { type: "button", class: "icon-btn", "aria-label": "Flyt til venstre", title: "Flyt til venstre", disabled: i === 0, onclick: () => { move(arr, i, -1); changed(); render(); } }, icon("left")),
             h("button", { type: "button", class: "icon-btn", "aria-label": "Flyt til højre", title: "Flyt til højre", disabled: i === arr.length - 1, onclick: () => { move(arr, i, 1); changed(); render(); } }, icon("right")),
+            isLocal(p) && h("button", { type: "button", class: "icon-btn", "aria-label": "Beskær", title: "Beskær", onclick: () => recrop(i) }, icon("crop")),
             h("button", { type: "button", class: "icon-btn danger", "aria-label": "Fjern billedet", title: "Fjern billedet", onclick: () => { arr.splice(i, 1); changed(); render(); } }, icon("trash")))));
       });
       const fileInp = h("input", { type: "file", multiple: true, accept: "image/jpeg,image/png,image/webp,image/gif", hidden: true });
-      fileInp.addEventListener("change", () => addFiles([...fileInp.files]));
+      fileInp.addEventListener("change", () => { const files = [...fileInp.files]; fileInp.value = ""; addFiles(files); });
       grid.append(h("li", { class: "gallery-add" },
         h("button", { type: "button", onclick: () => fileInp.click() }, icon("plus"), h("span", { text: "Tilføj billeder" })), fileInp));
       dropzone(grid, addFiles);
       wrap.replaceChildren(
         h("div", { class: "label-row" }, h("span", { class: "label", text: o.label }),
-          h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { const p = await pickImage("billede"); if (p) { arr.push(p); changed(); render(); } } }, icon("image"), "Vælg fra billeder")),
+          h("button", {
+            type: "button", class: "btn btn-ghost btn-sm",
+            onclick: async () => {
+              const ps = await pickImage("billede", { event: o.event, multiple: true });
+              const nye = (ps || []).filter((p) => !arr.includes(p));
+              if (!nye.length) return;
+              arr.push(...nye);
+              changed();
+              render();
+              toast(nye.length === 1 ? "Billedet er tilføjet." : `${nye.length} billeder er tilføjet.`);
+            },
+          }, icon("image"), "Vælg fra billeder")),
         grid, status, o.help && h("p", { class: "help", text: o.help }));
     };
+    async function recrop(i) {
+      try {
+        const f = await cropImage(arr[i], cropOpts("billede"));
+        if (!f) return;
+        status.textContent = "Gemmer det beskårne billede…";
+        arr[i] = (await uploadImage(f, "billede")).sti;
+        changed();
+        render();
+        toast("Billedet er beskåret.");
+      } catch (err) { handleError(err); }
+      status.textContent = "";
+    }
     async function addFiles(files) {
+      if (files.length === 1) { // ét billede ad gangen: tilbyd at beskære det
+        let ready = null;
+        try { ready = await cropImage(files[0], cropOpts("billede")); } catch (err) { handleError(err); return; }
+        if (!ready) return;
+        files = [ready];
+      }
       let ok = 0;
       for (const [n, f] of files.entries()) {
         status.textContent = `Uploader billede ${n + 1} af ${files.length}…`;
@@ -838,7 +1098,7 @@
       const ev = {
         id: uniqueId(slugify(titel) || "forestilling", evs.map((e) => e.id)),
         titel, type: "", datoer: "", start: "", sted: "", adresse: "", spoergsmaal: "", tekst: "", beskrivelse: "",
-        billede: "", galleri: [], hold: [], video: "", billetLink: "", eksterntLink: "", fremhaevet: false, skjult: false,
+        billede: "", galleri: [], hold: [], video: "", billetLink: "", proeveplan: "", fremhaevet: false, skjult: false,
       };
       evs.unshift(ev);
       S.nye.add(ev.id);
@@ -920,22 +1180,22 @@
           textInput(ev, "sted", { label: "Sted", placeholder: "fx Den Fynske Opera" }),
           textInput(ev, "adresse", { label: "Adresse", placeholder: "fx Jernbanegade 22, 5000 Odense C", help: "Bliver til et link til Google Maps." }))),
       card("Tekst", null,
-        textInput(ev, "spoergsmaal", { label: "Fængende spørgsmål eller citat", placeholder: "fx Hvis verden sluttede om fire timer – hvem ville du så være?", help: "Vises med stor skrift. Kan stå tomt." }),
-        textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side. Gerne 1–3 sætninger." }),
-        textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit. Skriv **sådan her** for fed tekst." })),
+        textInput(ev, "spoergsmaal", { label: "Overskrift til tekst (kan være tomt)", placeholder: "fx Hvis verden sluttede om fire timer – hvem ville du så være?", help: "Vises med stor skrift." }),
+        textArea(ev, "tekst", { label: "Kort tekst", rows: 3, help: "Vises på forsiden og øverst på forestillingens side." }),
+        textArea(ev, "beskrivelse", { label: "Lang beskrivelse", rows: 8, help: "Vises kun på forestillingens egen side. Lav en tom linje for at starte et nyt afsnit." })),
       card("Billeder", null,
-        imageField(ev, "billede", { label: "Hovedbillede eller banner", help: "Vises på forsiden, i oversigten og øverst på forestillingens side. Både brede bannere og plakater virker." }),
-        galleryField(ev.galleri, { label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
-      card("Medvirkende og hold", "Fx “Instruktør – Anna Hansen” eller “Veronica – Sofie Jensen”. Vises på forestillingens side.",
+        imageField(ev, "billede", { event: ev, label: "Hovedbillede", help: "Vises på forsiden, i oversigten og øverst på forestillingens side." }),
+        galleryField(ev.galleri, { event: ev, label: "Galleri", help: "Fx billeder fra prøver og forestillinger. Man kan klikke på dem for at se dem i stor størrelse." })),
+      card("Medvirkende og hold", null,
         rowsField(ev.hold, {
           cols: [{ key: "rolle", label: "Rolle eller funktion", placeholder: "fx Instruktør" }, { key: "navn", label: "Navn", placeholder: "fx Anna Hansen" }],
           addLabel: "Tilføj person",
           make: () => ({ rolle: "", navn: "" }),
         })),
-      card("Billetter og links", null,
+      card("Billetter, prøveplan og video", null,
         textInput(ev, "billetLink", { label: "Link til billetsalg", type: "url", placeholder: "https://…", help: "Når der står et link her, vises knappen “Køb billet”." }),
-        textInput(ev, "video", { label: "Video fra YouTube eller Vimeo", type: "url", placeholder: "https://www.youtube.com/watch?v=…", help: "Fx en trailer. Kopiér linket fra YouTube og sæt det ind her." }),
-        textInput(ev, "eksterntLink", { label: "Link til mere info (valgfri)", type: "url", placeholder: "https://…", help: "Fx en side om forestillingen et andet sted. Vises som knappen “Mere info”." })),
+        textInput(ev, "proeveplan", { label: "Link til prøveplan", type: "url", placeholder: "https://…", help: "Fx et link til et Google Docs-dokument eller en PDF. Når der står et link her, vises knappen “Se prøveplan”." }),
+        textInput(ev, "video", { label: "Video fra YouTube eller Vimeo", type: "url", placeholder: "https://www.youtube.com/watch?v=…", help: "Fx en trailer. Kopiér linket fra YouTube og sæt det ind her." })),
       card("Visning", null,
         toggle(ev, "fremhaevet", {
           label: "Vis som aktuel forestilling på forsiden",
@@ -1070,6 +1330,141 @@
           textInput(k, "tiktok", { label: "TikTok", type: "url", placeholder: "https://tiktok.com/@…" }),
           textInput(k, "youtube", { label: "YouTube", type: "url", placeholder: "https://youtube.com/@…" }))),
     ];
+  }
+
+  /** Steder på hjemmesiden, hvor et billede bruges (ud fra det, der står i editoren lige nu). */
+  function usages(path) {
+    const c = S.indhold, out = [];
+    if (c.forside.baggrund === path) out.push(["Forsiden – baggrundsbillede", "#/forside"]);
+    c.events.forEach((ev, i) => {
+      const t = ev.titel || "Forestilling uden titel";
+      if (ev.billede === path) out.push([`${t} – hovedbillede`, `#/forestillinger/${i}`]);
+      if (ev.galleri.includes(path)) out.push([`${t} – galleri`, `#/forestillinger/${i}`]);
+    });
+    c.sponsorer.forEach((sp) => { if (sp.logo === path) out.push([`Sponsor: ${sp.navn || "uden navn"}`, "#/sponsorer"]); });
+    return out;
+  }
+
+  const fmtBytes = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(n / 1024)) + " KB");
+  const fileName = (p) => p.split("/").pop();
+
+  function viewBilleder() {
+    let filter = "alle";
+    const wrap = h("div", { class: "stack-lg" }, h("div", { class: "card" }, h("div", { class: "loading" }, h("div", { class: "spinner" }), "Henter billeder…")));
+    const status = h("p", { class: "help", "aria-live": "polite" });
+    const fileInp = h("input", { type: "file", multiple: true, accept: "image/jpeg,image/png,image/webp,image/gif", hidden: true });
+
+    const load = async () => {
+      try {
+        S.billeder = (await api("billeder")).billeder;
+        draw();
+      } catch (err) {
+        wrap.replaceChildren(h("p", { class: "muted", text: err.message }));
+        if (err.status === 401) relogin().then((ok) => ok && load());
+      }
+    };
+    const tiles = (list) => h("ul", { class: "media-grid" }, list.map((b, i) =>
+      h("li", {},
+        h("button", { type: "button", class: "media-tile", "aria-label": `Åbn ${fileName(b.sti)}`, onclick: () => viewer(list, i, load) },
+          h("img", { src: imgSrc(b.sti), alt: "", loading: "lazy" }),
+          usages(b.sti).length > 0 && badge("I brug", "ok")),
+        h("span", { class: "media-name", title: fileName(b.sti), text: fileName(b.sti) }))));
+    const draw = () => {
+      const up = S.billeder.filter((b) => b.mappe === "uploads");
+      const fast = S.billeder.filter((b) => b.mappe !== "uploads");
+      const unused = up.filter((b) => !usages(b.sti).length);
+      const list = filter === "ubrugte" ? unused : up;
+      const grid = tiles(list);
+      dropzone(grid, addFiles);
+      wrap.replaceChildren(
+        h("section", { class: "card" },
+          h("div", { class: "card-head" },
+            h("h2", { class: "card-title", text: "Uploadede billeder" }),
+            h("div", { class: "chips" }, [["alle", `Alle (${up.length})`], ["ubrugte", `Ikke i brug (${unused.length})`]].map(([id, label]) =>
+              h("button", { type: "button", class: "chip" + (filter === id ? " on" : ""), "aria-pressed": String(filter === id), onclick: () => { filter = id; draw(); } }, label)))),
+          list.length ? grid : h("p", { class: "muted", text: filter === "ubrugte" ? "Alle uploadede billeder bruges på hjemmesiden." : "Der er ikke uploadet nogen billeder endnu. Træk billeder herind eller tryk på “Upload billeder”." }),
+          status),
+        fast.length > 0 && h("section", { class: "card" },
+          h("h2", { class: "card-title", text: "Faste billeder" }),
+          h("p", { class: "card-desc", text: "En del af hjemmesidens design. De kan bruges i felterne, men ikke slettes her." }),
+          tiles(fast)));
+    };
+    async function addFiles(files) {
+      let ok = 0;
+      for (const [n, f] of files.entries()) {
+        status.textContent = `Uploader billede ${n + 1} af ${files.length}…`;
+        try { await uploadImage(f, "billede"); ok++; } catch (err) { handleError(err); }
+      }
+      status.textContent = "";
+      if (ok) toast(ok === 1 ? "Billedet er uploadet." : `${ok} billeder er uploadet.`);
+      load();
+    }
+    fileInp.addEventListener("change", () => { const files = [...fileInp.files]; fileInp.value = ""; addFiles(files); });
+    load();
+    return [
+      pageHead("Billeder", "Alle billeder på hjemmesiden. Klik på et billede for at se det stort, hente det eller slette det.",
+        h("button", { type: "button", class: "btn btn-primary", onclick: () => fileInp.click() }, icon("upload"), "Upload billeder"), fileInp),
+      wrap,
+    ];
+  }
+
+  /** Stor visning af et billede med info, hent og slet. */
+  function viewer(list, start, onDeleted) {
+    let i = start;
+    modal({
+      title: "Billede",
+      wide: true,
+      body: (close) => {
+        const box = h("div", { class: "viewer" });
+        const go = (step) => { i = (i + step + list.length) % list.length; render(); };
+        const del = async () => {
+          const b = list[i];
+          if (!(await confirmBox("Slet billedet?", `“${fileName(b.sti)}” bliver slettet permanent fra serveren. Det kan ikke fortrydes.`, "Slet billede", true))) return;
+          try {
+            S.billeder = (await api("slet-billede", { body: { sti: b.sti } })).billeder;
+            close(null);
+            toast("Billedet er slettet.");
+            if (onDeleted) onDeleted();
+          } catch (err) { handleError(err); }
+        };
+        const render = () => {
+          const b = list[i];
+          const uses = usages(b.sti);
+          const deletable = b.mappe === "uploads";
+          box.replaceChildren(
+            h("div", { class: "viewer-img" },
+              h("img", { src: imgSrc(b.sti), alt: fileName(b.sti) }),
+              list.length > 1 && h("button", { type: "button", class: "viewer-nav prev", "aria-label": "Forrige billede", onclick: () => go(-1) }, icon("left")),
+              list.length > 1 && h("button", { type: "button", class: "viewer-nav next", "aria-label": "Næste billede", onclick: () => go(1) }, icon("right"))),
+            h("div", { class: "viewer-info" },
+              h("strong", { class: "viewer-name", text: fileName(b.sti) }),
+              h("span", { class: "muted small", text: [
+                b.bredde ? `${b.bredde} × ${b.hoejde} px` : "",
+                b.str ? fmtBytes(b.str) : "",
+                deletable && b.tid ? "uploadet " + fmtTime(new Date(b.tid * 1000).toISOString()) : "",
+                list.length > 1 ? `${i + 1} af ${list.length}` : "",
+              ].filter(Boolean).join(" · ") }),
+              uses.length
+                ? h("div", { class: "viewer-uses" }, h("span", { class: "label", text: "Bruges her:" }),
+                    h("ul", {}, uses.map(([label, href]) => h("li", {}, h("a", { href, onclick: () => close(null), text: label })))))
+                : h("p", { class: "muted small", text: "Bruges ikke på hjemmesiden lige nu." })),
+            h("div", { class: "viewer-actions" },
+              h("a", { class: "btn btn-secondary btn-sm", href: imgSrc(b.sti), target: "_blank", rel: "noopener" }, icon("external"), "Åbn i fuld størrelse"),
+              h("a", { class: "btn btn-secondary btn-sm", href: imgSrc(b.sti), download: fileName(b.sti) }, icon("download"), "Hent"),
+              deletable && h("button", { type: "button", class: "btn btn-ghost btn-sm danger", disabled: uses.length > 0, onclick: del }, icon("trash"), "Slet")),
+            deletable && uses.length > 0 && h("p", { class: "help", text: "Billedet kan ikke slettes, fordi det bruges på hjemmesiden. Fjern det fra stederne ovenfor først." }));
+        };
+        render();
+        box.go = go;
+        return box;
+      },
+      onOpen: (dlg) => dlg.addEventListener("keydown", (e) => {
+        const v = dlg.querySelector(".viewer");
+        if (!v || !v.go || e.target.closest("a, button") && e.key === "Enter") return;
+        if (e.key === "ArrowLeft") v.go(-1);
+        if (e.key === "ArrowRight") v.go(1);
+      }),
+    });
   }
 
   function viewHistorik() {
@@ -1271,6 +1666,7 @@
     { id: "medvirk", label: "Vær med", icon: "megaphone" },
     { id: "sponsorer", label: "Sponsorer", icon: "heart" },
     { id: "kontakt", label: "Kontakt", icon: "mail" },
+    { id: "billeder", label: "Billeder", icon: "image" },
     { group: "Andet" },
     { id: "historik", label: "Historik", icon: "history" },
     { id: "brugere", label: "Brugere", icon: "users", admin: true },
@@ -1279,7 +1675,7 @@
 
   const VIEWS = {
     "": viewOversigt, forside: viewForside, forestillinger: viewForestillinger, om: viewOm, medvirk: viewMedvirk,
-    sponsorer: viewSponsorer, kontakt: viewKontakt, historik: viewHistorik, brugere: viewBrugere, konto: viewKonto,
+    sponsorer: viewSponsorer, kontakt: viewKontakt, billeder: viewBilleder, historik: viewHistorik, brugere: viewBrugere, konto: viewKonto,
   };
 
   const UI = {};
