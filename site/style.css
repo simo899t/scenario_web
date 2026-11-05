@@ -225,6 +225,18 @@ h2.big { font-family: var(--sans); font-weight: 600; font-size: clamp(2.2rem, 5.
 .roles li { white-space: nowrap; }
 .roles li:not(:last-child)::after { content: "/"; margin: 0 .5em; font-weight: 300; opacity: .45; }
 .join-small { padding: clamp(70px, 9vw, 120px) 0; }
+/* Billeder i "Vær med" – op til fire på en række */
+.join-photos { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 14px; margin-top: clamp(40px, 6vw, 64px); }
+.join-photos a { display: block; overflow: hidden; aspect-ratio: 4 / 3; cursor: zoom-in; }
+.join-photos-one a { aspect-ratio: 21 / 9; }
+.join-photos img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
+.join-photos a:hover img { transform: scale(1.04); }
+@media (max-width: 640px) {
+  .join-photos { gap: 8px; }
+  .join-photos:not(.join-photos-one) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .join-photos li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .join-photos li:last-child:nth-child(odd) a { aspect-ratio: 2 / 1; }
+}
 
 /* Sponsorer */
 .sponsors { padding: clamp(80px, 12vw, 140px) 0; }

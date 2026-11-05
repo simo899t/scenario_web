@@ -1255,6 +1255,8 @@
         grid2(
           textInput(m, "knap", { label: "Tekst på knappen", placeholder: "Skriv til os" }),
           textInput(m, "link", { label: "Knappen går til", type: "url", placeholder: mail ? `mail til ${mail}` : "https://…", help: mail ? `Lad stå tomt for at åbne en mail til ${mail}. Du kan også indsætte et link, fx til en tilmeldingsformular.` : "Fx et link til en tilmeldingsformular." }))),
+      card("Billeder", "Vises under teksten i den røde sektion. Man kan klikke på dem for at se dem i stor størrelse.",
+        galleryField(m.billeder, { label: "Billeder", help: "Fx billeder fra prøver, bag scenen eller holdet. Brug pilene til at ændre rækkefølgen." })),
     ];
   }
 
@@ -1341,6 +1343,7 @@
       if (ev.billede === path) out.push([`${t} – hovedbillede`, `#/forestillinger/${i}`]);
       if (ev.galleri.includes(path)) out.push([`${t} – galleri`, `#/forestillinger/${i}`]);
     });
+    if (c.medvirk.billeder.includes(path)) out.push(["Vær med – billeder", "#/medvirk"]);
     c.sponsorer.forEach((sp) => { if (sp.logo === path) out.push([`Sponsor: ${sp.navn || "uden navn"}`, "#/sponsorer"]); });
     return out;
   }

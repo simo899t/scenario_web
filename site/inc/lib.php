@@ -169,7 +169,7 @@ function sc_schema(): array
             'video' => 'link', 'billetLink' => 'link', 'proeveplan' => 'link',
             'fremhaevet' => 'bool', 'skjult' => 'bool',
         ]],
-        'medvirk' => ['overskrift' => 'line', 'tekst' => 'text', 'roller' => ['line'], 'knap' => 'line', 'link' => 'link'],
+        'medvirk' => ['overskrift' => 'line', 'tekst' => 'text', 'roller' => ['line'], 'knap' => 'line', 'link' => 'link', 'billeder' => ['image']],
         'sponsorTekst' => ['overskrift' => 'line', 'tekst' => 'text'],
         'sponsorer' => [['id' => 'slug', 'navn' => 'line', 'logo' => 'image', 'link' => 'link', 'niveau' => 'niveau']],
         'kontakt' => [

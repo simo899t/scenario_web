@@ -76,6 +76,16 @@ sc_page_start(['aktiv' => 'forside', 'taeppe' => true]);
     <ul class="roles"><?php foreach ($m['roller'] as $r): ?><li><?= e($r) ?></li><?php endforeach; ?></ul>
     <?php endif; ?>
     <?php if ($m['knap'] !== ''): ?><a class="btn btn-light" href="<?= e($mLink) ?>"><?= e($m['knap']) ?></a><?php endif; ?>
+    <?php if ($m['billeder']):
+        $n = count($m['billeder']);
+        // Op til 4 på en række – ved flere vælges 3 eller 4, så der ikke står ét billede alene til sidst
+        $cols = $n <= 4 ? $n : ($n % 4 === 0 ? 4 : ($n % 3 === 0 ? 3 : ($n % 4 >= $n % 3 ? 4 : 3))); ?>
+    <ul class="join-photos<?= $n === 1 ? ' join-photos-one' : '' ?>" style="--cols: <?= $cols ?>" data-gallery>
+      <?php foreach ($m['billeder'] as $i => $img): ?>
+      <li><a href="<?= e($img) ?>" data-index="<?= $i ?>"><img src="<?= e($img) ?>" alt="<?= e($m['overskrift']) ?> – billede <?= $i + 1 ?>" loading="lazy"></a></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
   </div>
 </section>
 
