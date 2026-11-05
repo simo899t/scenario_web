@@ -76,7 +76,7 @@ sc_page_start(['aktiv' => 'forside', 'taeppe' => true]);
       <?php if ($m['roller']): ?>
       <ul class="roles"><?php foreach ($m['roller'] as $r): ?><li><?= e($r) ?></li><?php endforeach; ?></ul>
       <?php endif; ?>
-      <?php if ($m['knap'] !== ''): ?><a class="btn btn-light" href="<?= e($mLink) ?>"><?= e($m['knap']) ?></a><?php endif; ?>
+      <?= sc_join_buttons($m, $mLink) ?>
     </div>
     <?php if ($m['billeder']): ?>
     <ul class="join-photos" data-n="<?= min(count($m['billeder']), 5) ?>" data-gallery>

@@ -30,7 +30,7 @@ sc_page_start(['titel' => $om['overskrift'], 'beskrivelse' => $om['kort'], 'akti
   <div class="wrap reveal">
     <h2 class="big"><?= e($m['overskrift']) ?></h2>
     <div class="lead"><?= sc_paragraphs($m['tekst']) ?></div>
-    <?php if ($m['knap'] !== ''): ?><a class="btn btn-light" href="<?= e($mLink) ?>"><?= e($m['knap']) ?></a><?php endif; ?>
+    <?= sc_join_buttons($m, $mLink) ?>
   </div>
 </section>
 <?php

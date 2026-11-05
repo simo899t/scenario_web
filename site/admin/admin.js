@@ -1255,7 +1255,11 @@
         grid2(
           textInput(m, "knap", { label: "Tekst på knappen", placeholder: "Skriv til os" }),
           textInput(m, "link", { label: "Knappen går til", type: "url", placeholder: mail ? `mail til ${mail}` : "https://…", help: mail ? `Lad stå tomt for at åbne en mail til ${mail}. Du kan også indsætte et link, fx til en tilmeldingsformular.` : "Fx et link til en tilmeldingsformular." }))),
-      card("Billeder", "Vises under teksten i den røde sektion. Man kan klikke på dem for at se dem i stor størrelse.",
+      card("Knappen “Bliv medlem”", "Fx et link til jeres indmeldelse i Unioo. Knappen vises ved siden af “Skriv til os”.",
+        grid2(
+          textInput(m, "medlemKnap", { label: "Tekst på knappen", placeholder: "Bliv medlem" }),
+          textInput(m, "medlemLink", { label: "Knappen går til", type: "url", placeholder: "https://…", help: "Indsæt adressen på jeres indmeldelsesside. Lad feltet stå tomt, hvis knappen ikke skal vises." }))),
+      card("Billeder", "Vises ved siden af teksten i den røde sektion (under teksten på mobil). Man kan klikke på dem for at se dem i stor størrelse.",
         galleryField(m.billeder, { label: "Billeder", help: "Fx billeder fra prøver, bag scenen eller holdet. Brug pilene til at ændre rækkefølgen." })),
     ];
   }

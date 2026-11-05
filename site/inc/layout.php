@@ -109,6 +109,20 @@ function sc_media(string $src, string $alt, string $class = 'media'): string
     return '<div class="' . e($class) . '" style="--img:url(\'' . e($src) . '\')"><img src="' . e($src) . '" alt="' . e($alt) . '" loading="lazy"></div>';
 }
 
+/** Knapperne i "Vær med": "Bliv medlem" (fx til Unioo) og "Skriv til os". */
+function sc_join_buttons(array $m, string $mLink): string
+{
+    $medlem = $m['medlemLink'] !== '';
+    $html = '';
+    if ($medlem) {
+        $html .= '<a class="btn btn-light" href="' . e($m['medlemLink']) . '" target="_blank" rel="noopener">' . e($m['medlemKnap'] !== '' ? $m['medlemKnap'] : 'Bliv medlem') . '</a>';
+    }
+    if ($m['knap'] !== '') {
+        $html .= '<a class="btn ' . ($medlem ? 'btn-ghost' : 'btn-light') . '" href="' . e($mLink) . '">' . e($m['knap']) . '</a>';
+    }
+    return $html === '' ? '' : '<div class="join-actions">' . $html . '</div>';
+}
+
 /** Liste-række til en forestilling (forside og "andre forestillinger"). */
 function sc_event_row(array $ev): string
 {
