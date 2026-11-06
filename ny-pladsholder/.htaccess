@@ -1,0 +1,9 @@
+# Pladsholder til ny.teaterscenario.dk – hjemmesiden ligger nu på www.teaterscenario.dk.
+# Forsiden viser en lille side om flytningen. Alle andre adresser (fx /admin, /lager eller en
+# forestilling) sendes videre til samme sted på hoveddomænet, så gamle links og bogmærker virker.
+DirectoryIndex index.html
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(index\.html|logo\.png)?$ - [L]
+  RewriteRule ^(.*)$ https://www.teaterscenario.dk/$1 [R=301,L]
+</IfModule>

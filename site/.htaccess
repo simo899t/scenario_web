@@ -1,9 +1,20 @@
-# Teater Scenario – påvirker kun adresserne herunder, ikke undermapper som /lager
+# Teater Scenario (ligger i roden af www.teaterscenario.dk) – påvirker kun adresserne herunder, ikke undermapper som /lager
 
 # Gamle adresser fra den statiske version
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^om\.html$ om.php [R=301,L]
-  RewriteRule ^forestillinger\.html$ forestillinger.php [R=301,L]
-  RewriteRule ^index\.html$ index.php [R=301,L]
+  RewriteRule ^om\.html$ /om.php [R=301,L]
+  RewriteRule ^forestillinger\.html$ /forestillinger.php [R=301,L]
+  RewriteCond %{THE_REQUEST} \s/index\.html[\s?]
+  RewriteRule ^index\.html$ / [R=301,L]
+
+  # Gamle adresser fra den tidligere side på teaterscenario.dk (hjemmesidebyggeren)
+  RewriteRule ^om-scenario/?$ /om.php [R=301,L]
+  RewriteRule ^forestillinger/?$ /forestillinger.php [R=301,L]
+  RewriteRule ^kontakt/?$ /#kontakt [R=301,NE,L]
+  RewriteRule ^vil-du-vaere-med/?$ /#medvirk [R=301,NE,L]
+  RewriteRule ^sponsorer-og-netvaerk/?$ /#sponsorer [R=301,NE,L]
+  RewriteRule ^heathers-the-musical/?$ /forestilling.php?id=heathers-the-musical [R=301,L]
+  RewriteRule ^natten-til-torsdag/?$ /forestilling.php?id=natten-til-torsdag [R=301,L]
+  RewriteRule ^teaterkoncert2026/?$ /forestilling.php?id=final-call [R=301,L]
 </IfModule>

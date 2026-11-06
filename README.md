@@ -31,6 +31,17 @@ Hjemmesiden ligger i mappen `site/` og er almindelig PHP uden database. Alt indh
 ny version af koden, så **overskriv eller slet aldrig de to mapper** (pas på med
 "spejl"/"synkronisér" i FTP-programmer). De er derfor også udeladt fra git.
 
+## Flyt til hoveddomænet
+
+Siden ligger i roden af **www.teaterscenario.dk**. `site/.htaccess` sender adresserne fra den
+gamle side (fx `/om-scenario/`, `/kontakt/`, `/heathers-the-musical/`) videre til de nye sider.
+
+`ny-pladsholder/` lægges i mappen `ny` (ny.teaterscenario.dk): forsiden viser "Vi er flyttet",
+og alle andre adresser (fx `/admin` og `/lager`) sendes videre til samme sted på
+www.teaterscenario.dk. Husk `.htaccess` – den er skjult i mange programmer.
+
+Der må ikke ligge en `index.html` i roden, ellers vises den i stedet for `index.php`.
+
 ## Sikkerhed
 
 - Kodeord gemmes med `password_hash`. Login spærres i 15 minutter efter 8 forkerte forsøg.
