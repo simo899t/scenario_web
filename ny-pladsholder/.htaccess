@@ -4,6 +4,6 @@
 DirectoryIndex index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(index\.html|logo\.png)?$ - [L]
+  RewriteRule ^(index\.html|logo\.png|favicon\.ico)?$ - [L]
   RewriteRule ^(.*)$ https://www.teaterscenario.dk/$1 [R=301,L]
 </IfModule>

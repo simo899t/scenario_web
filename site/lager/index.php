@@ -488,6 +488,8 @@ function lg_html_start(string $title): void
   <title><?= e($title) ?> – Scenario Lager</title>
   <script src="<?= e($v('tema.js')) ?>"></script>
   <link rel="stylesheet" href="<?= e($v('lager.css')) ?>">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
   <script src="<?= e($v('lager.js')) ?>" defer></script>
 </head>
 <body>
